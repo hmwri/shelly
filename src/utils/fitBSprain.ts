@@ -1,5 +1,5 @@
 import type {Vector2} from "three";
-import {linspace, vec2ListTonumberList} from "./common.ts";
+import {linspace, vecListTonumberList} from "./common.ts";
 import nurbs from "nurbs";
 
 import {
@@ -29,7 +29,7 @@ export function fitBSprain(
     let constants:Vector2[] = [];
 
 
-    let y = vec2ListTonumberList(points);
+    let y = vecListTonumberList(points);
     let start_P = points[0].clone()
     let end_P = points[points.length-1].clone()
 

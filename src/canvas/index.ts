@@ -35,7 +35,7 @@ export class SketchCanvas extends CanvasBase{
             this.isDrawing = false;
             this.points = resampleByCount(this.points, 100)
             this.redraw()
-            const curve= fitBSprain(this.points, 3, 6)
+            const curve= fitBSprain(this.points, 3, 8)
             let points : Vector2[] = [];
 
             curve.sampleN(100, (xy) => {
@@ -52,10 +52,6 @@ export class SketchCanvas extends CanvasBase{
                 this.ctx.fillStyle = "green"
                 this.ctx.fillRect(p.x, p.y, 10,10)
             }
-
-
-
-
 
         })
 
