@@ -3,8 +3,8 @@ import {resampleByCount} from "../utils";
 import {fitBSprain} from "../utils/fitBSprain.ts";
 import {linspace, numberListToVec2List} from "../utils/common.ts";
 import {CanvasBase} from "./canvasBase.ts";
-import {e} from "mathjs";
-import {BackgroundScene} from "../scene";
+
+import {BackgroundScene, WorldScene} from "../scene";
 
 export class SketchCanvas extends CanvasBase{
     points:Array<Vector2> = new Array<Vector2>();
@@ -12,59 +12,62 @@ export class SketchCanvas extends CanvasBase{
     isDrawing:boolean = false;
     isMoving:boolean = true;
     cursorPos: Vector2 = new Vector2();
+    backScene:BackgroundScene
+    worldScene:WorldScene
 
     constructor(canvas:HTMLCanvasElement, backScene:BackgroundScene) {
         super(canvas);
         this.ctx = this.canvas.getContext("2d")!
         this.ctx.strokeStyle = "red";
+        this.backScene = backScene;
 
-
-        this.canvas.addEventListener("pointerdown", (e)=>{
-            this.points = []
-            this.redraw()
-            console.log("redraw")
-            this.isDrawing = true;
-            // const rect = this.canvasRect// 要素の位置とサイズ
-            // const x = e.clientX - rect.left; // 要素内でのX
-            // const y = e.clientY - rect.top;  // 要素内でのY
-            // this.points.push(new Vector2(x, y))
-
-        })
-
-        this.canvas.addEventListener("pointerup", (_) => {
-            this.isDrawing = false;
-            this.points = resampleByCount(this.points, 100)
-            this.redraw()
-            const curve= fitBSprain(this.points, 3, 8)
-            let points : Vector2[] = [];
-
-            curve.sampleN(100, (xy) => {
-                points.push(xy)
-            })
-
-            this.points = points;
-
-            backScene.addSketch(curve)
-
-            this.redraw()
-            for (let p of curve.points) {
-                p = this.NDCToCanvasPos(p)
-                this.ctx.fillStyle = "green"
-                this.ctx.fillRect(p.x, p.y, 10,10)
-            }
-
-        })
-
-
-        this.canvas.addEventListener("pointermove", (e)=>{
-            this.isMoving = true;
-            this.cursorPos = this.eventPosToCanvasPos(e)
-
-        })
+        this.worldScene = backScene.worldScene;
 
         this.onResize()
 
     }
+
+    onPointerDown(_: PointerEvent) {
+        this.points = []
+        this.redraw()
+        console.log("redraw")
+        this.isDrawing = true;
+    }
+
+    onPointerUp(_: PointerEvent) {
+
+        this.isDrawing = false;
+        if(this.points.length < 10) {
+            return
+        }
+        this.points = resampleByCount(this.points, 100)
+        this.redraw()
+        const curve= fitBSprain(this.points, 3, 8)
+        let points : Vector2[] = [];
+
+        curve.sampleN(100, (xy) => {
+            points.push(xy)
+        })
+
+        this.points = points;
+
+        this.backScene.addSketch(curve)
+
+        this.redraw()
+        for (let p of curve.points) {
+            p = this.NDCToCanvasPos(p)
+            this.ctx.fillStyle = "green"
+            this.ctx.fillRect(p.x, p.y, 10,10)
+        }
+    }
+
+
+    onPointerMove(e: PointerEvent) {
+        this.isMoving = true;
+        this.cursorPos = this.eventPosToCanvasPos(e)
+    }
+
+
 
 
     redraw() {

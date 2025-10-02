@@ -2,12 +2,13 @@ import {BufferAttribute, BufferGeometry, Vector2, Vector3} from "three";
 import  {type NurbsObject} from "nurbs";
 import nurbs from "nurbs";
 import {
+    concatTypedArray, GeometryBuilder,
     isNumber2D, isNumber3D,
     isVector2Array, isVector3Matrix,
     linspace,
     numberListToVec2List,
     numberListToVec3List,
-    vecListTonumberList
+    vecListTonumberList, Vertex
 } from "../utils/common.ts";
 
 
@@ -133,6 +134,60 @@ export class NurbsSurface {
         return grid;
     }
 
+    sampleLineAlongU(
+        v: number,
+        Nu: number = 50,
+        callback: ((p: Vector3, u: number, v: number) => void) | null = null
+    ): Vector3[] {
+        // Check if the given v is within the valid domain
+        const [vmin, vmax] = this.domain_v;
+        if (v < vmin || v > vmax) {
+            throw new Error(`v=${v} is out of domain [${vmin}, ${vmax}]`);
+        }
+
+        const [umin, umax] = this.domain_u;
+        const us = linspace(umin, umax, Nu); // Generate Nu linearly spaced points for u
+
+        const line: Vector3[] = new Array(Nu);
+        for (let i = 0; i < Nu; i++) {
+            const u = us[i];
+            const p = this.sample(u, v); // Sample the point on the surface
+            if (callback) {
+                callback(p, u, v); // Execute callback if provided
+            }
+            line[i] = p;
+        }
+
+        return line;
+    }
+
+    sampleLineAlongV(
+        u: number,
+        Nv: number = 50,
+        callback: ((p: Vector3, u: number, v: number) => void) | null = null
+    ): Vector3[] {
+        // Check if the given u is within the valid domain
+        const [umin, umax] = this.domain_u;
+        if (u < umin || u > umax) {
+            throw new Error(`u=${u} is out of domain [${umin}, ${umax}]`);
+        }
+
+        const [vmin, vmax] = this.domain_v;
+        const vs = linspace(vmin, vmax, Nv); // Generate Nv linearly spaced points for v
+
+        const line: Vector3[] = new Array(Nv);
+        for (let i = 0; i < Nv; i++) {
+            const v = vs[i];
+            const p = this.sample(u, v); // Sample the point on the surface
+            if (callback) {
+                callback(p, u, v); // Execute callback if provided
+            }
+            line[i] = p;
+        }
+
+        return line;
+    }
+
 
     buildNurbsSurfaceGeometry(
         Nu = 100,
@@ -149,98 +204,178 @@ export class NurbsSurface {
         // 1) サンプル点（Nu x Nv）
         const grid = this.sampleN(Nu, Nv);
 
-        // 2) 位置・UV のバッファ確保
-        const N = Nu * Nv;
-        const positions = new Float32Array(N * 3);
-        const uvs = new Float32Array(N * 2);
+        const gb = new GeometryBuilder()
 
-        const [umin, umax] = this.domain_u;
-        const [vmin, vmax] = this.domain_v;
-
-        // u,v の等間隔（domain に対して 0..1 を割り当て）
         const uAt = (i: number) => (Nu === 1 ? 0.5 : i / (Nu - 1));
         const vAt = (j: number) => (Nv === 1 ? 0.5 : j / (Nv - 1));
 
+
         // 3) 頂点列化（行優先：i が u、j が v）
-        let pOff = 0, tOff = 0;
-        for (let i = 0; i < Nu; i++) {
-            for (let j = 0; j < Nv; j++) {
+        const vertexGrid: Vertex[][] = Array.from({ length: Nu }, (_, i) =>
+            Array.from({ length: Nv }, (_, j) => {
                 const p = grid[i][j];
-                positions[pOff++] = p.x;
-                positions[pOff++] = p.y;
-                positions[pOff++] = p.z;
-
-                // UV は [0,1] に正規化（シェーダで domain に戻したければ使える）
-                uvs[tOff++] = uAt(i);
-                uvs[tOff++] = vAt(j);
-            }
-        }
-
-        // 4) インデックス（三角形リスト）
-        // セル (i,j) を [i*(Nv)+j] のインデックスで張る
-        const triCount = (Nu - 1) * (Nv - 1) * 2;
-        const indices = new (N > 65535 ? Uint32Array : Uint16Array)(triCount * 3);
-
-        let k = 0;
-        const area2 = (ax: number, ay: number, az: number, bx: number, by: number, bz: number, cx: number, cy: number, cz: number) => {
-            // |(b-a) x (c-a)|^2
-            const abx = bx - ax, aby = by - ay, abz = bz - az;
-            const acx = cx - ax, acy = cy - ay, acz = cz - az;
-            const cxp = aby * acz - abz * acy;
-            const cyp = abz * acx - abx * acz;
-            const czp = abx * acy - aby * acx;
-            return cxp * cxp + cyp * cyp + czp * czp;
-        };
-
-        const putTri = (a: number, b: number, c: number) => {
-            // 退化三角形を（オプションで）スキップ
-            if (epsArea > 0) {
-                const ax = positions[a * 3], ay = positions[a * 3 + 1], az = positions[a * 3 + 2];
-                const bx = positions[b * 3], by = positions[b * 3 + 1], bz = positions[b * 3 + 2];
-                const cx = positions[c * 3], cy = positions[c * 3 + 1], cz = positions[c * 3 + 2];
-                if (area2(ax, ay, az, bx, by, bz, cx, cy, cz) < epsArea) return; // 面積ほぼゼロ → 捨てる
-            }
-            indices[k++] = a;
-            indices[k++] = b;
-            indices[k++] = c;
-        };
+                const v = new Vertex(p, new Vector2(uAt(i), vAt(j)));
+                gb.addVertex(v);
+                return v;
+            })
+        );
 
         for (let i = 0; i < Nu - 1; i++) {
             for (let j = 0; j < Nv - 1; j++) {
-                const a = i * Nv + j;
-                const b = (i + 1) * Nv + j;
-                const c = i * Nv + (j + 1);
-                const d = (i + 1) * Nv + (j + 1);
-
-                // 2 三角形で四辺形を張る
-                // 反転指定に応じて頂点順序を切り替え
-                if (!flipNormal) {
-                    putTri(a, b, d);
-                    putTri(a, d, c);
-                } else {
-                    putTri(a, d, b);
-                    putTri(a, c, d);
-                }
+                gb.addRect(vertexGrid[i][j], vertexGrid[i+1][j],vertexGrid[i][j+1],vertexGrid[i+1][j+1], flipNormal)
             }
         }
-        // 5) Geometry 組み立て
-        const geom = new BufferGeometry();
-        geom.setAttribute('position', new BufferAttribute(positions, 3));
-        geom.setAttribute('uv',       new BufferAttribute(uvs, 2));
 
-        // 実際に入ったインデックス数に切り詰め（退化除去で減る場合がある）
-        if (k < indices.length) {
-            const trimmed = indices.slice(0, k);
-            geom.setIndex(new BufferAttribute(trimmed, 1));
-        } else {
-            geom.setIndex(new BufferAttribute(indices, 1));
+
+        // 5) Geometry 組み立て
+
+        return gb.toBufferGeometry();
+    }
+
+
+    buildNurbsSolidGeometry(
+        Nu = 100,
+        Nv = 100,
+        opts?: {
+            /** 法線反転（NURBS 実装や u/v 方向の取り方次第で裏表が逆になる場合に） */
+            flipNormal?: boolean;
+            /** 退化（三点がほぼ一直線）三角形をスキップする閾値 */
+            epsArea?: number;
+        }
+    ): BufferGeometry {
+        const {flipNormal = false, epsArea = 1e-12} = opts ?? {};
+
+        // 1) サンプル点（Nu x Nv）
+        const grid = this.sampleN(Nu, Nv);
+
+        const _gb = new GeometryBuilder();
+
+        const uAt = (i: number) => (Nu === 1 ? 0.5 : i / (Nu - 1));
+        const vAt = (j: number) => (Nv === 1 ? 0.5 : j / (Nv - 1));
+
+
+
+
+        const vertexGrid: Vertex[][] = Array.from({ length: Nu }, (_, i) =>
+            Array.from({ length: Nv }, (_, j) => {
+                const p = grid[i][j];
+                const v = new Vertex(p, new Vector2(uAt(i), vAt(j)));
+                _gb.addVertex(v);
+                return v;
+            })
+        );
+
+        for (let i = 0; i < Nu - 1; i++) {
+            for (let j = 0; j < Nv - 1; j++) {
+                _gb.addRect(vertexGrid[i][j], vertexGrid[i+1][j],vertexGrid[i][j+1],vertexGrid[i+1][j+1], !flipNormal)
+            }
         }
 
-        geom.computeVertexNormals(); // 面取りの連続性が良ければこれで十分
-        geom.computeBoundingBox();
-        geom.computeBoundingSphere();
 
-        return geom;
+        _gb.toBufferGeometry();
+
+        const normals = _gb.getNormals();
+        const gb = new GeometryBuilder();
+
+        const thickness = 0.4;
+        const offsetVertexGrid: Vertex[][] = Array.from({ length: Nu }, (_, i) =>
+            Array.from({ length: Nv }, (_, j) => {
+                const idx = i * Nv + j; // ← ここがポイント（もともと i*Nu+j になってる）
+                const nx = normals![3 * idx];
+                const ny = normals![3 * idx + 1];
+                const nz = normals![3 * idx + 2];
+
+                const p = grid[i][j].clone().add(new Vector3(nx, ny, nz).multiplyScalar(-thickness));
+                const v = new Vertex(p, new Vector2(uAt(i), vAt(j)));
+                gb.addVertex(v);
+                return v;
+            })
+        );
+
+
+
+
+        const offsetVertexGrid2: Vertex[][] = Array.from({ length: Nu }, (_, i) =>
+            Array.from({ length: Nv }, (_, j) => {
+                const idx = i * Nv + j; // ← ここがポイント（もともと i*Nu+j になってる）
+                const nx = normals![3 * idx];
+                const ny = normals![3 * idx + 1];
+                const nz = normals![3 * idx + 2];
+
+                const p = grid[i][j].clone().add(new Vector3(nx, ny, nz).multiplyScalar(thickness));
+                const v = new Vertex(p, new Vector2(uAt(i), vAt(j)));
+                gb.addVertex(v);
+                return v;
+            })
+        );
+
+        for (let i = 0; i < Nu - 1; i++) {
+            for (let j = 0; j < Nv - 1; j++) {
+                gb.addRect(
+                    offsetVertexGrid2[i][j],
+                    offsetVertexGrid2[i + 1][j],
+                    offsetVertexGrid2[i][j + 1],
+                    offsetVertexGrid2[i + 1][j + 1],
+                    !flipNormal
+                );
+            }
+        }
+
+// オフセット面（裏面）は既に作っている前提
+        for (let i = 0; i < Nu - 1; i++) {
+            for (let j = 0; j < Nv - 1; j++) {
+                gb.addRect(
+                    offsetVertexGrid[i][j],
+                    offsetVertexGrid[i + 1][j],
+                    offsetVertexGrid[i][j + 1],
+                    offsetVertexGrid[i + 1][j + 1],
+                    flipNormal
+                );
+            }
+        }
+
+// --- 追加: 4 辺の「側面」を結ぶ ---
+// v = 0 辺（下辺）
+        for (let i = 0; i < Nu - 1; i++) {
+            const a0 = offsetVertexGrid2[i][0];
+            const a1 = offsetVertexGrid2[i + 1][0];
+            const b0 = offsetVertexGrid[i][0];
+            const b1 = offsetVertexGrid[i + 1][0];
+            gb.addRect(a0, a1, b0, b1, flipNormal);
+        }
+
+// v = Nv-1 辺（上辺）
+        for (let i = 0; i < Nu - 1; i++) {
+            const a0 = offsetVertexGrid2[i][Nv - 1];
+            const a1 = offsetVertexGrid2[i + 1][Nv - 1];
+            const b0 = offsetVertexGrid[i][Nv - 1];
+            const b1 = offsetVertexGrid[i + 1][Nv - 1];
+            // 反時計回りを保つために左右を反転
+            gb.addRect(a1, a0, b1, b0, flipNormal);
+        }
+
+// u = 0 辺（左辺）
+        for (let j = 0; j < Nv - 1; j++) {
+            const a0 = offsetVertexGrid2[0][j];
+            const a1 = offsetVertexGrid2[0][j + 1];
+            const b0 = offsetVertexGrid[0][j];
+            const b1 = offsetVertexGrid[0][j + 1];
+            // 反時計回りを保つために上下を反転
+            gb.addRect(a1, a0, b1, b0, flipNormal);
+        }
+
+// u = Nu-1 辺（右辺）
+        for (let j = 0; j < Nv - 1; j++) {
+            const a0 = offsetVertexGrid2[Nu - 1][j];
+            const a1 = offsetVertexGrid2[Nu - 1][j + 1];
+            const b0 = offsetVertexGrid[Nu - 1][j];
+            const b1 = offsetVertexGrid[Nu - 1][j + 1];
+            gb.addRect(a0, a1, b0, b1, flipNormal);
+        }
+
+
+        return  gb.toBufferGeometry();
     }
+
 
 }

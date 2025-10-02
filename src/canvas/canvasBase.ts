@@ -6,6 +6,11 @@ export class CanvasBase {
     dpr:number = 0
     canvas:HTMLCanvasElement
 
+    private downPos: {x: number, y: number} | null = null
+    private downTime: number = 0
+    private clickThreshold = 5   // px
+    private timeThreshold = 300
+
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas
@@ -15,7 +20,49 @@ export class CanvasBase {
         const h = rect.height;
         this.w = w * this.dpr;
         this.h = h * this.dpr;
+
+
+
+        canvas.addEventListener("pointerdown", (event) => this._handlePointerDown(event));
+        canvas.addEventListener("pointerup",   (event) => this._handlePointerUp(event));
+        canvas.addEventListener("pointermove", (event) => this._handlePointerMove(event));
+        canvas.addEventListener("wheel", (event) => this.onScroll(event));
+
     }
+
+    private _handlePointerDown(event: PointerEvent) {
+        this.downPos = { x: event.clientX, y: event.clientY }
+        this.downTime = performance.now()
+        this.onPointerDown(event)
+    }
+
+    private _handlePointerUp(event: PointerEvent) {
+        if (this.downPos) {
+            const dx = event.clientX - this.downPos.x
+            const dy = event.clientY - this.downPos.y
+            const dist = Math.sqrt(dx*dx + dy*dy)
+            const dt = performance.now() - this.downTime
+
+            if (dist < this.clickThreshold && dt < this.timeThreshold) {
+                this.onPointerClicked(event)
+            }
+        }
+        this.downPos = null
+        this.onPointerUp(event)
+    }
+
+    private _handlePointerMove(event: PointerEvent) {
+        this.onPointerMove(event)
+    }
+
+
+
+    // --- 子クラスで override する用の "on" 系メソッド ---
+    protected onPointerDown(_: PointerEvent): void {}
+    protected onPointerUp(_: PointerEvent): void {}
+    protected onPointerMove(_: PointerEvent): void {}
+    protected onPointerClicked(_: PointerEvent): void {}
+    protected onScroll(_: WheelEvent): void {}
 
 
     onResize() {

@@ -1,40 +1,72 @@
 <!doctype html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + TS</title>
-      <style>
-          body { margin:0; height:100vh; }
-          #app {
-              display: flex;
-              width: 100%;
-              height: 100%;
-          }
-          #left, #right {
-              flex: 1 1 0;
-              position: relative; /* 子canvasをabsoluteで敷き詰めるなら相対に */
-          }
-          canvas { display:block; }
-          #glRightCanvas, #glLeftCanvas, #sketchCanvas { position:absolute; inset:0; }
-          #sketchCanvas{
-              z-index: 1;
-          }
+    <style>
+        :root { box-sizing: border-box; }
+        *, *::before, *::after { box-sizing: inherit; }
+        html, body { margin: 0; height: 100%; }
+        body { height: 100vh; }
 
-      </style>
-  </head>
-  <body>
-    <div id="app">
-        <div id="left">
-            <canvas id="glLeftCanvas"></canvas>
-            <canvas id="sketchCanvas"></canvas>
-        </div>
-        <div id="right">
-            <canvas id="glRightCanvas"></canvas>
-        </div>
+        /* 2×2 グリッド */
+        #app {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            width: 100vw;
+            height: 100vh;
+        }
 
+        /* 各パネルは相対配置、キャンバスは全面に敷く */
+        .panel {
+            position: relative;
+            overflow: hidden;
+        }
+        .panel canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* 重ねるときの上側キャンバス（sketch） */
+        .sketchCanvas {
+            z-index: 1;
+            pointer-events: auto; /* 必要に応じて変更 */
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 左上：GL + sketch -->
+    <div id="panel-tl" class="panel">
+        <canvas id="glCanvasTL"></canvas>
+        <canvas id="sketchCanvasTL" class="sketchCanvas"></canvas>
     </div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+
+    <!-- 右上：GL のみ（あなたの指定 ID を使用） -->
+    <div id="panel-tr" class="panel">
+        <canvas id="glRIghtTopCanvas"></canvas>
+    </div>
+
+    <!-- 左下：GL + sketch -->
+    <div id="panel-bl" class="panel">
+        <canvas id="glCanvasBL"></canvas>
+        <canvas id="sketchCanvasBL" class="sketchCanvas"></canvas>
+    </div>
+
+    <!-- 右下：GL + sketch -->
+    <div id="panel-br" class="panel">
+        <canvas id="glCanvasBR"></canvas>
+        <canvas id="sketchCanvasBR" class="sketchCanvas"></canvas>
+    </div>
+</div>
+
+<!-- 既存エントリを流用。中で各 ID に合わせて初期化すること -->
+<script type="module" src="/src/main.ts"></script>
+</body>
 </html>

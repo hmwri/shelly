@@ -1,12 +1,15 @@
 import * as THREE from "three";
-import {PerspectiveCamera} from "three";
+import {PerspectiveCamera, Vector3} from "three";
 import {CanvasBase} from "../canvas/canvasBase.ts";
+import type {ArchObject} from "../object/NurbsSurfaceObject.ts";
 
 export class Scene extends CanvasBase {
     THREEscene : THREE.Scene
     camera: THREE.PerspectiveCamera | THREE.OrthographicCamera
     dir : THREE.DirectionalLight
     renderer: THREE.WebGLRenderer
+    //objects: ArchObject[] = [];
+    raycaster : THREE.Raycaster;
 
     constructor(canvas : HTMLCanvasElement) {
         super(canvas);
@@ -33,6 +36,10 @@ export class Scene extends CanvasBase {
         this.renderer = r
 
 
+        this.raycaster = new THREE.Raycaster();
+        this.raycaster.params.Line2 = { threshold: 2 };
+
+
         // グリッドヘルパーを作成
 // 引数: サイズ, 分割数, 中心線の色, グリッド線の色
         const size = 10;         // 全体の幅
@@ -41,11 +48,31 @@ export class Scene extends CanvasBase {
 
 // シーンに追加
         scene.add(gridHelper);
-
     }
 
     add(object:THREE.Object3D) {
         this.THREEscene.add(object)
+    }
+
+
+
+
+    intersectPlane(xy:THREE.Vector2, plane:THREE.Plane, normalize:boolean = false){
+
+        if(normalize){
+            xy = this.canvasPosToNDC(xy)
+        }
+        this.raycaster.setFromCamera(xy, this.camera);
+        return  this.raycaster.ray.intersectPlane(plane, new Vector3());
+    }
+
+    intersectObjects<T extends THREE.Object3D>(xy:THREE.Vector2, objects:T[],normalize:boolean = false,recursive:boolean=false)
+    :THREE.Intersection<T>[]{
+        if(normalize){
+            xy = this.canvasPosToNDC(xy)
+        }
+        this.raycaster.setFromCamera(xy, this.camera);
+        return  this.raycaster.intersectObjects(objects,recursive);
     }
 
     // switchWireframeVisibility(visible = false){
@@ -64,7 +91,6 @@ export class Scene extends CanvasBase {
     render() {
         this.renderer.render(this.THREEscene, this.camera)
     }
-
 
 
     onResize() {
