@@ -29,8 +29,9 @@ const sketchLayers: SketchCanvas[] = [];
 for (const p of overlayPanels) {
     const gl = getCanvas(p.glId);
     const sk = getCanvas(p.sketchId);
-    const bg = new BackgroundScene(gl, worldSceneTR, p.axis);
-    const sketch = new SketchCanvas(sk, bg);
+    const sketch = new SketchCanvas(sk);
+    const bg = new BackgroundScene(gl, worldSceneTR, p.axis, sketch);
+
     bgScenes.push(bg);
     sketchLayers.push(sketch);
 }
@@ -59,7 +60,7 @@ const tick = () => {
 
         // 他3面（GL→Sketch）
         for (const bg of bgScenes) bg.render();
-        for (const sk of sketchLayers) sk.update(dt);
+        // for (const sk of sketchLayers) sk.update(dt);
 
         last = now;
     }

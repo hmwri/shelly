@@ -33,3 +33,6 @@ declare module "nurbs" {
 
     export default function nurbs(input: NurbsInput): NurbsObject;
 }
+
+
+export type ModeType = "NORMAL" | "EDITING"

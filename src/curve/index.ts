@@ -88,6 +88,62 @@ export class NurbsSurface {
         this.domain_v = this.surface.domain[1]
     }
 
+    reloadCurve() {
+        this.surface = nurbs(
+            {
+                points: vecListTonumberList(this.points),
+                degree: this.degree,
+                knots: this.knot,
+            }
+        )
+    }
+    getControlPointVector(axis: "u" | "v", i: number): Vector3[] {
+        const vCount = this.points.length;           // 行数 (= v の本数)
+        const uCount = this.points[0]?.length ?? 0;  // 列数 (= u の本数)
+
+        if (axis === "u") {
+            // 固定 u=i → 各 v について列 i を拾う
+            if (i < 0 || i >= uCount) {
+                throw new Error(`Invalid index i=${i} for u-axis`);
+            }
+            return this.points.map(row => row[i]);
+        } else {
+            // 固定 v=i → 行 i をそのまま返す
+            if (i < 0 || i >= vCount) {
+                throw new Error(`Invalid index i=${i} for v-axis`);
+            }
+            return this.points[i];
+        }
+    }
+
+    setControlPointVector(axis: "u" | "v", i: number, newVec: Vector3[]): void {
+        const vCount = this.points.length;
+        const uCount = this.points[0]?.length ?? 0;
+
+        if (axis === "u") {
+            // 固定 u=i → 各 v の row[i] を更新
+            if (i < 0 || i >= uCount) {
+                throw new Error(`Invalid index i=${i} for u-axis`);
+            }
+            if (newVec.length !== vCount) {
+                throw new Error(`Length mismatch: expected ${vCount}, got ${newVec.length}`);
+            }
+            for (let v = 0; v < vCount; v++) {
+                this.points[v][i] = newVec[v];
+            }
+        } else {
+            // 固定 v=i → 行丸ごと置換
+            if (i < 0 || i >= vCount) {
+                throw new Error(`Invalid index i=${i} for v-axis`);
+            }
+            if (newVec.length !== uCount) {
+                throw new Error(`Length mismatch: expected ${uCount}, got ${newVec.length}`);
+            }
+            this.points[i] = newVec;
+        }
+        this.reloadCurve();
+    }
+
     /** サーフェスを (u,v) で評価して Vector3 を返す */
     sample(u: number, v: number): Vector3 {
         // 範囲チェック
@@ -277,7 +333,7 @@ export class NurbsSurface {
         const normals = _gb.getNormals();
         const gb = new GeometryBuilder();
 
-        const thickness = 0.4;
+        const thickness = 0.2;
         const offsetVertexGrid: Vertex[][] = Array.from({ length: Nu }, (_, i) =>
             Array.from({ length: Nv }, (_, j) => {
                 const idx = i * Nv + j; // ← ここがポイント（もともと i*Nu+j になってる）

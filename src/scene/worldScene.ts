@@ -7,6 +7,8 @@ import {ArchObject, LineHelper, NurbsSurfaceObject} from "../object/NurbsSurface
 import * as THREE from "three";
 import {STLExporter} from 'three/examples/jsm/exporters/STLExporter.js';
 import {Object3D} from "three";
+import {intersect} from "mathjs";
+import type {ModeType} from "../types/nurbs";
 
 
 export class WorldScene extends Scene {
@@ -15,7 +17,7 @@ export class WorldScene extends Scene {
     selectingObject: ArchObject | null = null;
     objects: ArchObject[] = [];
     helpers: LineHelper[] = [];
-    mode: "NORMAL" | "EDITING";
+    mode: ModeType = "NORMAL";
 
 
     constructor(canvas: HTMLCanvasElement) {
@@ -63,6 +65,9 @@ export class WorldScene extends Scene {
                 if (this.selectingObject)
                     this.deleteObject(this.selectingObject)
             }
+            if(event.key == "Enter") {
+                this.setMode("NORMAL");
+            }
             if (event.key == "e") {
                 let binary = true;
                 const exporter = new STLExporter();
@@ -104,14 +109,25 @@ export class WorldScene extends Scene {
 
     }
 
+    setMode(mode: ModeType) {
+        this.mode = mode;
+        for(const object of this.objects) {
+            object.changeMode(mode);
+        }
+        if(this.mode === "NORMAL") {
+            this.selectObject(null);
+        }
+    }
 
-    selectObject(object: ArchObject) {
+
+    selectObject(object: ArchObject | null) {
         if (this.selectingObject) {
             this.selectingObject.selected = false;
         }
-
-        this.selectingObject = object;
-        object.selected = true;
+        if(object) {
+            this.selectingObject = object;
+            object.selected = true;
+        }
     }
 
     deleteObject(object: ArchObject) {
@@ -159,35 +175,51 @@ export class WorldScene extends Scene {
 
 
     onPointerClicked(event: PointerEvent) {
-        const intersects = this.intersectObjects(
-            this.eventPosToNDC(event),
-            this.objects,
-            false,
-            true,
-        )
-        let selectingD = 1000000;
-        for (const intersect of intersects) {
-            console.log(intersect)
-            const obj = intersect.object
-            if(this.mode == "NORMAL") {
+        if(this.mode == "NORMAL") {
+            const intersects = this.intersectObjects(
+                this.eventPosToNDC(event),
+                this.objects,
+                false,
+                true,
+            )
+            let selectingD = 1000000;
+            for (const intersect of intersects) {
+                const obj = intersect.object
+
                 if (obj instanceof ArchObject && selectingD > intersect.distance) {
                     selectingD = intersect.distance;
                     this.selectObject(obj)
                 }
-            }else if(this.mode == "EDITING") {
-                if (obj instanceof ArchObject && selectingD > intersect.distance) {
+
+            }
+        }
+        if(this.mode == "EDITING" && this.selectingObject) {
+            const intersects = this.intersectObjects(
+                this.eventPosToNDC(event),
+                this.selectingObject.lineHelpers,
+                false,
+                true,
+            )
+            let selectingD = 1000000;
+            let selected : LineHelper | null = null;
+            for (const intersect of intersects) {
+                const obj = intersect.object
+
+                if (obj instanceof LineHelper && selectingD > intersect.distance) {
                     selectingD = intersect.distance;
-                    this.selectObject(obj)
+                    selected = intersect.object;
                 }
             }
 
+                this.selectingObject.onHelperClicked(selected);
 
-            obj.onClick();
+
         }
     }
 
     addObject(object: ArchObject) {
         this.objects.push(object);
+        object.mode = this.mode;
         this.add(object);
         return object;
     }

@@ -1,113 +1,186 @@
-import {Scene} from "./type.ts";
-import type {WorldScene} from "./worldScene.ts";
-import {Camera, OrthographicCamera, Vector2, Vector3} from "three";
-
+import { Scene } from "./type";
+import type { WorldScene } from "./worldScene";
+import { Camera, OrthographicCamera, Vector2, Vector3 } from "three";
 import * as THREE from "three";
 
-import {NurbsCurve, NurbsSurface} from "../curve";
-import {makeClampedUniformKnots} from "../utils/nurbs.ts";
-import {NurbsSurfaceObject} from "../object/NurbsSurfaceObject.ts";
+import { NurbsCurve, NurbsSurface } from "../curve";
+import { makeClampedUniformKnots } from "../utils/nurbs";
+import { NurbsSurfaceObject } from "../object/NurbsSurfaceObject";
+import { fitBSprain } from "../utils/fitBSprain";
+import { SketchCanvas } from "../canvas";
+import {resampleByCount} from "../utils";
 
 
-type direction = "xy" | "xz"|"yz"
-const directionToCameraVec : Record<direction, Vector3> = {
+type direction = "xy" | "xz" | "yz";
+
+const directionToCameraVec: Record<direction, Vector3> = {
     "xy": new THREE.Vector3(0, 0, 1),
     "xz": new THREE.Vector3(0, 1, 0),
-    "yz": new THREE.Vector3(1, 0, 0)
-}
+    "yz": new THREE.Vector3(1, 0, 0),
+};
 
 export class BackgroundScene extends Scene {
     camera: OrthographicCamera;
-    plane:THREE.Plane;
-    cameraVec : Vector3;
+    plane: THREE.Plane;
+    cameraVec: Vector3;
     worldScene: WorldScene;
     frustumSize: number = 10;
-    constructor(canvas : HTMLCanvasElement, worldScene:WorldScene, direction:direction) {
+
+    sketchCanvas: SketchCanvas;
+    private isDrawing: boolean = false;
+    private currentPoints: Vector2[] = [];
+
+    constructor(
+        canvas: HTMLCanvasElement,
+        worldScene: WorldScene,
+        direction: direction,
+        sketchCanvas: SketchCanvas
+    ) {
         super(canvas);
-        this.THREEscene = worldScene.THREEscene
-        this.camera =  new OrthographicCamera();
-        this.cameraVec = directionToCameraVec[direction].clone()
-        this.camera.position.copy(this.cameraVec.clone().multiplyScalar(4));
-        // 向きごとの位置と up を正しく設定
+
+        this.THREEscene = worldScene.THREEscene;
+        this.camera = new OrthographicCamera();
+        this.cameraVec = directionToCameraVec[direction].clone();
+        this.camera.position.copy(this.cameraVec.clone().multiplyScalar(10));
+
+        // 向きごとのカメラ設定
         if (direction === "xy") {
             this.camera.up.set(0, 1, 0);
         } else if (direction === "xz") {
-            this.camera.up.set(0, 0, 1);
-        } else { // "yz"
-            this.camera.up.set(0, 1, 0);   // Z を上に（視線が -X なので up は Z）
-
+            this.camera.up.set(0, 0, -1);
+        } else {
+            this.camera.up.set(0, 1, 0); // "yz"
         }
+
         this.plane = new THREE.Plane(this.cameraVec, 0);
         this.worldScene = worldScene;
+        this.sketchCanvas = sketchCanvas;
 
+        this.camera.lookAt(new Vector3(0, 0, 0));
+        this.camera.layers.disable(1);
+        this.onResize();
+        const testCurve = new NurbsCurve(
+            [
+                [-0.37266988105283194, 0.07239073023432538],
+                [-0.30510814013626075, 0.1784123012410865],
+                [-0.1875320369433661, 0.29546421945732676],
+                [-0.08551398016300955, 0.7313507701210126],
+                [0.2353314450791319, 0.7008650926044424],
+                [0.3264529372982839, 0.2851606597220622],
+                [0.3858515624712898, 0.1315747433540553],
+                [0.5154323150224216, 0.11756760546524048]
+            ],
+            3,
+            [0, 0, 0, 0, 0.2, 0.4, 0.6, 0.8, 1, 1, 1, 1]
+        );
 
-        this.camera.lookAt(new Vector3(0,0,0))
-        this.camera.layers.disable(1)
-        this.onResize()
+        this.updateCamera()
+        if(direction === "xy") {
+            this.addSketch(testCurve);
+        }
+
     }
 
     render() {
-        const originalColor = this.THREEscene.background
-        this.THREEscene.background = new THREE.Color(255,255,255)
-        this.worldScene.showDoubleSide(true)
+        const originalColor = this.THREEscene.background;
+        this.THREEscene.background = new THREE.Color(255, 255, 255);
+        this.worldScene.showDoubleSide(true);
+
         super.render();
-        this.THREEscene.background = originalColor
-        this.worldScene.showDoubleSide(false)
+
+        this.THREEscene.background = originalColor;
+        this.worldScene.showDoubleSide(false);
     }
 
-    onScroll(event:WheelEvent) {
-        console.log(event)
-        this.frustumSize += 0.1
-        this.updateCamera()
+    // --- イベント処理 ---
+    protected onPointerDown(e: PointerEvent): void {
+        this.currentPoints = [];
+        this.isDrawing = true;
+        this.sketchCanvas.startStroke();
     }
 
-    addSketch(curve: NurbsCurve): void {
+    protected onPointerMove(e: PointerEvent): void {
+        if (!this.isDrawing) return;
+        const pos = this.eventPosToNDC(e);
+        this.currentPoints.push(pos);
+        this.sketchCanvas.updateStroke(this.currentPoints.map(p => this.NDCToCanvasPos(p)));
+    }
 
-        let projectedP =             curve.points.map((xy) => {
-                const p =  this.intersectPlane(xy, this.plane)
-                if(p == null) throw new Error("Unknown plane")
-                return p
-            })
+    protected onPointerUp(e: PointerEvent): void {
+        this.isDrawing = false;
+        if (this.currentPoints.length < 10) return;
+        const resampled = resampleByCount(this.currentPoints, 100);
 
 
-        let points = []
-        const PN = 5
-        for(let i = 0; i < PN; i++){
-            points.push(projectedP.map((v) => v?.clone().add(this.cameraVec.clone().multiplyScalar(i - PN/2))));
+
+        // --- Bスプライン近似 ---
+
+        const curve = fitBSprain(resampled, 3, 8);
+
+        if(this.worldScene.mode == "EDITING") {
+            this.worldScene.selectingObject?.sketchModify(
+                this,
+                resampled
+            )
+        } else{
+            this.addSketch(curve);
         }
-        console.log(points)
-        const uDegree = 3;
 
-        let surface = new NurbsSurface(points, [ uDegree,curve.degree], [makeClampedUniformKnots(PN, uDegree),curve.knot]);
-        // surface.sampleN(
-        //     10,10,(p,u,v)=>{
-        //         debugSphere(this.THREEscene, p);
-        //     }
-        // )
+        // 3Dシーンに追加
 
-        const obj = this.worldScene.addObject(new NurbsSurfaceObject(surface, this.worldScene))
-        this.worldScene.selectObject(obj)
-        this.worldScene.mode = "EDITING"
-
-
+        this.sketchCanvas.finishStroke(curve.points.map(p => this.NDCToCanvasPos(p)));
     }
 
+    protected onScroll(e: WheelEvent): void {
+        this.frustumSize += e.deltaY * 0.01;
+        this.updateCamera();
+    }
 
+    // --- NURBS Surface 生成 ---
+    addSketch(curve: NurbsCurve): void {
+        const projectedP = curve.points.map((xy) => {
+            const p = this.intersectPlane(xy, this.plane);
+            if (p == null) throw new Error("Unknown plane");
+            return p;
+        });
 
+        const PN = 5;
+        let points: Vector3[][] = [];
+        for (let i = 0; i < PN; i++) {
+            points.push(
+                projectedP.map((v) =>
+                    v?.clone().add(this.cameraVec.clone().multiplyScalar(i - PN / 2))
+                )
+            );
+        }
 
+        const uDegree = 3;
+        const surface = new NurbsSurface(
+            points,
+            [uDegree, curve.degree],
+            [makeClampedUniformKnots(PN, uDegree), curve.knot]
+        );
+
+        const obj = this.worldScene.addObject(
+            new NurbsSurfaceObject(surface, this.worldScene)
+        );
+        this.worldScene.selectObject(obj);
+        this.worldScene.setMode("EDITING");
+    }
+
+    // --- カメラ操作 ---
     updateCamera() {
         const frustumSize = this.frustumSize;
-        const aspect = this.canvas.clientWidth/this.canvas.clientHeight;
-        this.camera.left = -frustumSize * aspect / 2
-        this.camera.right = frustumSize * aspect / 2
-        this.camera.top = frustumSize / 2
-        this.camera.bottom = -frustumSize / 2
-        this.camera.updateProjectionMatrix()
+        const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+        this.camera.left = (-frustumSize * aspect) / 2;
+        this.camera.right = (frustumSize * aspect) / 2;
+        this.camera.top = frustumSize / 2;
+        this.camera.bottom = -frustumSize / 2;
+        this.camera.updateProjectionMatrix();
     }
 
     onResize() {
         super.onResize();
         this.updateCamera();
-
     }
 }
