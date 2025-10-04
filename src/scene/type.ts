@@ -75,6 +75,11 @@ export class Scene extends CanvasBase {
         return  this.raycaster.intersectObjects(objects,recursive);
     }
 
+    isIntersect(xy:THREE.Vector2, object:THREE.Object3D): boolean {
+        this.raycaster.setFromCamera(xy, this.camera);
+        return this.raycaster.intersectObjects([object], true).length >= 1;
+    }
+
     // switchWireframeVisibility(visible = false){
     //     this.THREEscene.traverse((obj3d) => {
     //         if(obj3d.material){

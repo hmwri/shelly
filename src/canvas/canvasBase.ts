@@ -21,19 +21,22 @@ export class CanvasBase {
         this.w = w * this.dpr;
         this.h = h * this.dpr;
 
-
-
         canvas.addEventListener("pointerdown", (event) => this._handlePointerDown(event));
         canvas.addEventListener("pointerup",   (event) => this._handlePointerUp(event));
         canvas.addEventListener("pointermove", (event) => this._handlePointerMove(event));
-        canvas.addEventListener("wheel", (event) => this.onScroll(event));
-
+        canvas.addEventListener("wheel",       (event) => this.onScroll(event));
     }
 
     private _handlePointerDown(event: PointerEvent) {
+        console.log(event)
         this.downPos = { x: event.clientX, y: event.clientY }
         this.downTime = performance.now()
-        this.onPointerDown(event)
+
+        if (event.buttons === 2) {
+            this.onRightPointerDown(event)
+        } else {
+            this.onPointerDown(event)
+        }
     }
 
     private _handlePointerUp(event: PointerEvent) {
@@ -44,26 +47,42 @@ export class CanvasBase {
             const dt = performance.now() - this.downTime
 
             if (dist < this.clickThreshold && dt < this.timeThreshold) {
-                this.onPointerClicked(event)
+                if (event.button === 2) {
+                    this.onRightPointerClicked(event)
+                } else {
+                    this.onPointerClicked(event)
+                }
             }
         }
         this.downPos = null
-        this.onPointerUp(event)
+
+        if (event.buttons === 2) {
+            this.onRightPointerUp(event)
+        } else {
+            this.onPointerUp(event)
+        }
     }
 
     private _handlePointerMove(event: PointerEvent) {
-        this.onPointerMove(event)
+        if (event.buttons === 2) {
+            this.onRightPointerMove(event)
+        } else {
+            this.onPointerMove(event)
+        }
     }
 
-
-
-    // --- 子クラスで override する用の "on" 系メソッド ---
+// --- 子クラスで override する用の "on" 系メソッド ---
     protected onPointerDown(_: PointerEvent): void {}
     protected onPointerUp(_: PointerEvent): void {}
     protected onPointerMove(_: PointerEvent): void {}
     protected onPointerClicked(_: PointerEvent): void {}
     protected onScroll(_: WheelEvent): void {}
 
+// 右クリック版
+    protected onRightPointerDown(_: PointerEvent): void {}
+    protected onRightPointerUp(_: PointerEvent): void {}
+    protected onRightPointerMove(_: PointerEvent): void {}
+    protected onRightPointerClicked(_: PointerEvent): void {}
 
     onResize() {
         const rect = this.canvas.parentElement!.getBoundingClientRect();

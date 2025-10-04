@@ -318,3 +318,87 @@ export class GeometryBuilder {
         return this.g?.attributes.normal.array;
     }
 }
+
+
+
+
+
+/**
+ * Calculate Mean Absolute Error (MAE) between two arrays of Vector3.
+ * @param arr1 First array of Vector3
+ * @param arr2 Second array of Vector3
+ * @returns Mean Absolute Error (number)
+ */
+export function calcMAE(arr1: Vector3[], arr2: Vector3[]): number {
+    if (arr1.length !== arr2.length) {
+        throw new Error("Arrays must have the same length");
+    }
+
+    let totalError = 0;
+    const n = arr1.length;
+
+    for (let i = 0; i < n; i++) {
+        const diffX = Math.abs(arr1[i].x - arr2[i].x);
+        const diffY = Math.abs(arr1[i].y - arr2[i].y);
+        const diffZ = Math.abs(arr1[i].z - arr2[i].z);
+        totalError += (diffX + diffY + diffZ) / 3; // 各ベクトルの平均誤差
+    }
+
+    return totalError / n; // 全体の平均誤差
+}
+
+
+export function deepCopyVector3Matrix(matrix: Vector3[][]): Vector3[][] {
+    return matrix.map(row => row.map(v => v.clone()));
+}
+
+
+// a・b / (|a||b|)
+export function cosineSimilarity(a: THREE.Vector3, b: THREE.Vector3): number {
+    const la = a.length();
+    const lb = b.length();
+    if (la === 0 || lb === 0) return 0; // ゼロベクトル対策
+    return a.dot(b) / (la * lb);
+}
+
+
+/**
+ * Vector3[] の重み付き平均を計算する
+ * @param vectors - ベクトル配列
+ * @param ws - 重み配列（vectors と同じ長さ）
+ * @returns 重み付き平均ベクトル
+ */
+export function weightedAverage(vectors: Vector3[], ws: number[]): Vector3 {
+    if (vectors.length !== ws.length || vectors.length === 0) {
+        throw new Error("vectors と ws の長さが一致しないか、空です。");
+    }
+
+    // 重みの合計
+    const sumW = ws.reduce((a, b) => a + b, 0);
+    if (sumW === 0) throw new Error("重みの合計が 0 です。");
+
+    // 重み付き合計
+    const result = new Vector3(0, 0, 0);
+    for (let i = 0; i < vectors.length; i++) {
+        result.addScaledVector(vectors[i], ws[i]);
+    }
+
+    // 平均化
+    return result.multiplyScalar(1 / sumW);
+}
+
+
+/**
+ * Vector3[] の単純平均を計算する
+ * @param vectors - ベクトル配列
+ * @returns 平均ベクトル
+ */
+export function average(vectors: Vector3[]): Vector3 {
+    if (vectors.length === 0) throw new Error("空の配列です。");
+
+    const result = new Vector3(0, 0, 0);
+    for (const v of vectors) {
+        result.add(v);
+    }
+    return result.multiplyScalar(1 / vectors.length);
+}

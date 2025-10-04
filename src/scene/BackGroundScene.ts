@@ -25,10 +25,15 @@ export class BackgroundScene extends Scene {
     cameraVec: Vector3;
     worldScene: WorldScene;
     frustumSize: number = 10;
+    private isPanning = false;
+    private panStartNDC: Vector2 | null = null;
+    private panStartWorld: Vector3 | null = null;
 
     sketchCanvas: SketchCanvas;
     private isDrawing: boolean = false;
     private currentPoints: Vector2[] = [];
+    isHandDragging: boolean = false;
+    handDragInitialPos: Vector2 = new Vector2();
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -79,6 +84,8 @@ export class BackgroundScene extends Scene {
             this.addSketch(testCurve);
         }
 
+        this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
     }
 
     render() {
@@ -95,19 +102,45 @@ export class BackgroundScene extends Scene {
     // --- イベント処理 ---
     protected onPointerDown(e: PointerEvent): void {
         this.currentPoints = [];
-        this.isDrawing = true;
-        this.sketchCanvas.startStroke();
+        if(this.worldScene.mode == "NORMAL") {
+            this.isDrawing = true;
+            this.sketchCanvas.startStroke();
+        }else if(this.worldScene.mode == "EDITING" && this.worldScene.selectingObject){
+            if(this.worldScene.selectingObject.isHelperSelected()){
+                this.isDrawing = true;
+                this.sketchCanvas.startStroke();
+            }else if(this.isIntersect(this.eventPosToNDC(e), this.worldScene.selectingObject)){
+                this.isHandDragging = true;
+                this.handDragInitialPos = this.eventPosToNDC(e)
+                this.worldScene.selectingObject.onMoveStart()
+
+            }
+
+
+        }else{
+
+        }
+
     }
 
     protected onPointerMove(e: PointerEvent): void {
-        if (!this.isDrawing) return;
-        const pos = this.eventPosToNDC(e);
-        this.currentPoints.push(pos);
-        this.sketchCanvas.updateStroke(this.currentPoints.map(p => this.NDCToCanvasPos(p)));
-    }
+
+        if(this.isDrawing) {
+            const pos = this.eventPosToNDC(e);
+            this.currentPoints.push(pos);
+            this.sketchCanvas.updateStroke(this.currentPoints.map(p => this.NDCToCanvasPos(p)));
+
+        }else if(this.isHandDragging) {
+            const initial = this.intersectPlane(this.handDragInitialPos, this.plane)
+            const now = this.intersectPlane(this.eventPosToNDC(e), this.plane)
+            if(initial && now)
+            this.worldScene.selectingObject?.onMove(initial.sub(now))
+        }
+   }
 
     protected onPointerUp(e: PointerEvent): void {
         this.isDrawing = false;
+        this.isHandDragging = false;
         if (this.currentPoints.length < 10) return;
         const resampled = resampleByCount(this.currentPoints, 100);
 
@@ -166,6 +199,44 @@ export class BackgroundScene extends Scene {
         );
         this.worldScene.selectObject(obj);
         this.worldScene.setMode("EDITING");
+    }
+
+    protected onRightPointerDown(e: PointerEvent): void {
+        this.isPanning = true;
+
+        this.panStartNDC = this.eventPosToNDC(e);
+        this.panStartWorld = this.intersectPlane(this.panStartNDC, this.plane);
+
+        // ドラッグ中にポインタが外れても追従できるように
+        this.canvas.setPointerCapture?.(e.pointerId);
+    }
+
+    // 右ドラッグ中：開始点と現在点の平面上の差分だけカメラを移動
+    protected onRightPointerMove(e: PointerEvent): void {
+        if (!this.isPanning) return;
+
+
+        console.log("here")
+
+        const nowNDC = this.eventPosToNDC(e);
+        const nowWorld = this.intersectPlane(nowNDC, this.plane);
+        if (!this.panStartWorld || !nowWorld) return;
+
+        // 画面上で同じ点を掴んで動かす感じにするには initial - now
+        const delta = this.panStartWorld.clone().sub(nowWorld);
+
+        // オルソ視点：位置だけ平行移動。向き（回転）は固定のまま
+        this.camera.position.add(delta);
+        this.camera.updateMatrixWorld(); // 念のため更新
+    }
+
+    // 右クリック離し：状態リセット
+    protected onRightPointerUp(e: PointerEvent): void {
+        if (!this.isPanning) return;
+        this.isPanning = false;
+        this.panStartNDC = null;
+        this.panStartWorld = null;
+        this.canvas.releasePointerCapture?.(e.pointerId);
     }
 
     // --- カメラ操作 ---

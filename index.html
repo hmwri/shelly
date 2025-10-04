@@ -11,16 +11,25 @@
         html, body { margin: 0; height: 100%; }
         body { height: 100vh; }
 
-        /* 2×2 グリッド */
+        /* 2×2 グリッド + ヘッダー */
         #app {
             display: grid;
+            grid-template-rows: auto 1fr 1fr; /* 1行目がヘッダー */
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
             width: 100vw;
             height: 100vh;
         }
 
-        /* 各パネルは相対配置、キャンバスは全面に敷く */
+        header {
+            grid-column: 1 / 3; /* ヘッダーを横に全幅 */
+            background: #333;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            font-size: 1.2rem;
+        }
+
         .panel {
             position: relative;
             overflow: hidden;
@@ -33,26 +42,63 @@
             display: block;
         }
 
-        /* 重ねるときの上側キャンバス（sketch） */
         .sketchCanvas {
             z-index: 1;
             pointer-events: none;
         }
+
+        /* 右端の縦並びライト（#panel-tr の右縦端） */
+        #panel-tr .traffic-lights-vert {
+            position: absolute;
+            top: 50%;
+            right: 8px;                 /* 右端からの余白 */
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px; /* 下のGL操作を邪魔しない */
+            z-index: 2;
+        }
+
+        #panel-tr .traffic-lights-vert .light {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            box-shadow:
+                    0 0 0 2px rgba(255,255,255,0.35) inset,
+                    0 0 6px rgba(0,0,0,0.35);
+            opacity: 0.95;
+        }
+
+        /* 指定の順序：緑 → 赤 → 黄 */
+        #panel-tr .traffic-lights-vert .light.green  { background: #20c36b; }
+        #panel-tr .traffic-lights-vert .light.red    { background: #ff4d4f; }
+        #panel-tr .traffic-lights-vert .light.yellow { background: #f7c948; }
     </style>
 </head>
 <body>
 <div id="app">
+    <!-- ヘッダー -->
+    <header>
+        My Visualization Dashboard
+    </header>
+
     <!-- 左上：GL + sketch -->
     <div id="panel-tl" class="panel">
         <canvas id="glCanvasTL"></canvas>
         <canvas id="sketchCanvasTL" class="sketchCanvas"></canvas>
     </div>
 
-    <!-- 右上：GL のみ（あなたの指定 ID を使用） -->
+    <!-- 右上：GL のみ -->
     <div id="panel-tr" class="panel">
         <canvas id="glRIghtTopCanvas"></canvas>
-    </div>
 
+        <!-- 右端 縦並びの信号風ドット -->
+        <div class="traffic-lights-vert" aria-hidden="true">
+            <span id = "GreenButton" class="light green"></span>
+            <span id = "RedButton" class="light red"></span>
+            <span id = "YellowButton" class="light yellow"></span>
+        </div>
+    </div>
     <!-- 左下：GL + sketch -->
     <div id="panel-bl" class="panel">
         <canvas id="glCanvasBL"></canvas>
@@ -66,7 +112,6 @@
     </div>
 </div>
 
-<!-- 既存エントリを流用。中で各 ID に合わせて初期化すること -->
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

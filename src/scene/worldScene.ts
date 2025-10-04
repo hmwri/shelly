@@ -3,14 +3,15 @@ import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
 import {TransformControls} from "three/examples/jsm/controls/TransformControls.js";
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {createCube} from "../object";
-import {ArchObject, LineHelper, NurbsSurfaceObject} from "../object/NurbsSurfaceObject.ts";
+import {ArchObject, NurbsSurfaceObject} from "../object/NurbsSurfaceObject.ts";
 import * as THREE from "three";
 import {STLExporter} from 'three/examples/jsm/exporters/STLExporter.js';
 import {Object3D} from "three";
 import {intersect} from "mathjs";
 import type {ModeType} from "../types/nurbs";
+import {LineHelper} from "../object/LineHelper.ts";
 
-
+export type EventCode = "RedButton" | "GreenButton" | "BlueButton" | "YellowButton" ;
 export class WorldScene extends Scene {
 
 
@@ -60,15 +61,58 @@ export class WorldScene extends Scene {
 
         );
 
-        window.addEventListener('keydown', (event) => {
-            if (event.key == "d") {
+        window.addEventListener("DOMContentLoaded", () => {
+            const greenBtn = document.getElementById("GreenButton");
+            const redBtn = document.getElementById("RedButton");
+            const yellowBtn = document.getElementById("YellowButton");
+            greenBtn?.addEventListener("click", () => {
+                console.log("green");
+                this.sendEvent("GreenButton");
+            });
+
+            redBtn?.addEventListener("click", () => {
+                console.log("red");
+                this.sendEvent("RedButton");
+            });
+
+            yellowBtn?.addEventListener("click", () => {
+                console.log("yellow");
+                this.sendEvent("YellowButton");
+            });
+        });
+
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key == "d") {
                 if (this.selectingObject)
                     this.deleteObject(this.selectingObject)
+                this.setMode("NORMAL")
             }
-            if(event.key == "Enter") {
+            if (e.key == "n") {
                 this.setMode("NORMAL");
             }
-            if (event.key == "e") {
+            if(e.key == "v") {
+                this.setMode("EDITING");
+            }
+            // const ctrl = e.ctrlKey || e.metaKey;
+            // if (!ctrl) return;
+
+            if (e.key.toLowerCase() === "z" && !e.shiftKey) {
+                // Undo
+                console.log("aa")
+                if (this.selectingObject) this.selectingObject.undo();
+                 // シーン全体で持つ場合
+                e.preventDefault();
+            } else if ((e.key.toLowerCase() === "z" && e.shiftKey) || e.key.toLowerCase() === "y") {
+                // Redo
+                if (this.selectingObject) this.selectingObject.redo();
+                 // シーン全体で持つ場合
+                e.preventDefault();
+            }
+            if(e.key == "Enter") {
+                this.setMode("NORMAL");
+            }
+            if (e.key == "e") {
                 let binary = true;
                 const exporter = new STLExporter();
                 const group = new THREE.Group();
@@ -107,6 +151,12 @@ export class WorldScene extends Scene {
 
     onPointerDown(event: PointerEvent) {
 
+    }
+
+    sendEvent(code:EventCode) {
+        for(const obj of this.objects) {
+            obj.onEvent(code)
+        }
     }
 
     setMode(mode: ModeType) {
@@ -175,24 +225,6 @@ export class WorldScene extends Scene {
 
 
     onPointerClicked(event: PointerEvent) {
-        if(this.mode == "NORMAL") {
-            const intersects = this.intersectObjects(
-                this.eventPosToNDC(event),
-                this.objects,
-                false,
-                true,
-            )
-            let selectingD = 1000000;
-            for (const intersect of intersects) {
-                const obj = intersect.object
-
-                if (obj instanceof ArchObject && selectingD > intersect.distance) {
-                    selectingD = intersect.distance;
-                    this.selectObject(obj)
-                }
-
-            }
-        }
         if(this.mode == "EDITING" && this.selectingObject) {
             const intersects = this.intersectObjects(
                 this.eventPosToNDC(event),
@@ -211,10 +243,34 @@ export class WorldScene extends Scene {
                 }
             }
 
-                this.selectingObject.onHelperClicked(selected);
+            this.selectingObject.onHelperClicked(selected);
 
 
         }
+        if(this.mode == "NORMAL") {
+            const intersects = this.intersectObjects(
+                this.eventPosToNDC(event),
+                this.objects,
+                false,
+                true,
+            )
+            let selectingD = 1000000;
+            let isClicked = false;
+            for (const intersect of intersects) {
+                const obj = intersect.object
+
+                if (obj instanceof ArchObject && selectingD > intersect.distance) {
+                    selectingD = intersect.distance;
+                    this.selectObject(obj)
+                    isClicked = true;
+                }
+
+            }
+            if(isClicked) {
+                this.setMode("EDITING");
+            }
+        }
+
     }
 
     addObject(object: ArchObject) {
