@@ -2,14 +2,12 @@ import {Scene} from "./type.ts";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
 import {TransformControls} from "three/examples/jsm/controls/TransformControls.js";
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
-import {createCube} from "../object";
-import {ArchObject, NurbsSurfaceObject} from "../object/NurbsSurfaceObject.ts";
+import {NurbsSurfaceObject} from "../object/NurbsSurfaceObject.ts";
 import * as THREE from "three";
 import {STLExporter} from 'three/examples/jsm/exporters/STLExporter.js';
-import {Object3D} from "three";
-import {intersect} from "mathjs";
 import type {ModeType} from "../types/nurbs";
-import {LineHelper} from "../object/LineHelper.ts";
+import {LineHelper} from "../object/helpers/LineHelper.ts";
+import { ArchObject } from "../object/base/ArchObject";
 
 export type EventCode = "RedButton" | "GreenButton" | "BlueButton" | "YellowButton" ;
 export class WorldScene extends Scene {

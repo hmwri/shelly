@@ -22,16 +22,15 @@ export class SetControlPointsCommand {
     }
 
     private apply(surface: NurbsSurface) {
-        this.target.surface = surface.clone();
         // surface -> geometry を再生成（LineHelperも貼り直し）
         this.target.updateGeometry(
-            this.target.surface
+            surface.clone()
         );
 
     }
 
     do()   { this.apply(this.surface); }
-    undo() { this.apply(this.oldSurface); this.target.removeSuggestions();}
+    undo() { this.apply(this.oldSurface); this.target.view.clearSuggestions();}
 
 
 }
