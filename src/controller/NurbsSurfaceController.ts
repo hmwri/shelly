@@ -38,6 +38,28 @@ export class NurbsSurfaceController {
     }
 
     onEvent(code: EventCode) {
+        if (code == "ToolFillSolid") {
+            this.model.buildType = "N"
+            this.owner.updateGeometry()
+            return
+        }
+
+        if (code == "ToolFillHStripe") {
+            this.model.buildType = "U"
+            this.owner.updateGeometry()
+            return
+        }
+        if (code == "ToolFillVStripe") {
+            this.model.buildType = "V"
+            this.owner.updateGeometry()
+            return
+        }
+        if (code == "ToolFillGrid") {
+            this.model.buildType = "UV"
+            this.owner.updateGeometry()
+            return
+        }
+
         for (const s of this.view.suggestions) s.onEvent(code);
     }
 
@@ -94,7 +116,7 @@ export class NurbsSurfaceController {
         const projectedP: THREE.Vector3[] = curve.points.map((xy) => {
             const p = scene.intersectPlane(xy, scene.plane);
             if (p == null) throw new Error("Unknown plane");
-            p.sub(this.owner.position); // ローカル化
+            p.sub(this.owner.position.clone()); // ローカル化
             return p;
         });
 
@@ -142,11 +164,14 @@ export class NurbsSurfaceController {
             }
             const helper = new SuggestionHelper(
                 new NurbsSurfaceModel(newSurface).buildGeometry(),
-                new THREE.MeshStandardMaterial({ color: 0xff0000, transparent: true, opacity: 0.2 })
+                new THREE.MeshStandardMaterial({ color: 0xffff00, transparent: true, opacity: 0.3 })
             );
             this.view.addSuggestion(helper);
+
             helper.eventCallback = (event) => {
-                if (event === "RedButton") {
+                if (event === "YellowButton") {
+                    this.view.setActiveSuggestion(true)
+                    helper.visible = false
                     this.owner.history.execute(
                         new SetControlPointsCommand({
                             target: this.owner,
@@ -157,7 +182,7 @@ export class NurbsSurfaceController {
                 }
             };
             // 初期プレビュー用に任意で反応させたい場合
-            helper.onEvent("RedButton");
+            helper.onEvent("YellowButton");
         }
 
         // ========== Suggestion 2: 全断面を一律更新 ==========
@@ -172,11 +197,13 @@ export class NurbsSurfaceController {
             }
             const helper = new SuggestionHelper(
                 new NurbsSurfaceModel(newSurface).buildGeometry(),
-                new THREE.MeshStandardMaterial({ color: 0x00ff00, transparent: true, opacity: 0.2 })
+                new THREE.MeshStandardMaterial({ color: 0xff0000, transparent: true, opacity: 0.3 })
             );
             this.view.addSuggestion(helper);
             helper.eventCallback = (event) => {
-                if (event === "YellowButton") {
+                if (event === "RedButton") {
+                    this.view.setActiveSuggestion(true)
+                    helper.visible = false
                     this.owner.history.execute(
                         new SetControlPointsCommand({
                             target: this.owner,
@@ -208,11 +235,13 @@ export class NurbsSurfaceController {
 
             const helper = new SuggestionHelper(
                 new NurbsSurfaceModel(newSurface).buildGeometry(),
-                new THREE.MeshStandardMaterial({ color: 0x0000ff, transparent: true, opacity: 0.2 })
+                new THREE.MeshStandardMaterial({ color: 0x00ff00, transparent: true, opacity: 0.3 })
             );
             this.view.addSuggestion(helper);
             helper.eventCallback = (event) => {
                 if (event === "GreenButton") {
+                    this.view.setActiveSuggestion(true)
+                    helper.visible = false
                     this.owner.history.execute(
                         new SetControlPointsCommand({
                             target: this.owner,

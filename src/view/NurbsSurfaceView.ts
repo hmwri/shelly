@@ -69,6 +69,10 @@ export class NurbsSurfaceView {
         for (const l of this.lineHelpers) l.visible = visible;
     }
 
+    setActiveSuggestion(visible: boolean) {
+        for (const l of this.suggestions) l.visible = visible;
+    }
+
     /** 選択中補助線のフラグ更新 */
     selectHelper(helper: LineHelper | null) {
         for (const h of this.lineHelpers) h.selecting = false;

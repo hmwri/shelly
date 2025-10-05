@@ -113,7 +113,7 @@ export function linearWeights(length: number, center: number): number[] {
 
 /**
  * 交互の 0/1 ランを作るマスクを生成する。
- * 0 で始まり、必ず 0 で終わる。
+ * 1 で始まり、必ず 0 で終わる。
  *
  * L       : 配列長（>=2 推奨）
  * zStart  : 0ラン長の開始値（>=1）
@@ -127,13 +127,13 @@ export function generateMask(
     oStart: number, oEnd: number
 ): number[] {
     if (L <= 0) return [];
-    if (L === 1) return [0]; // 「最初と最後が0」を満たす最小ケース
+    if (L === 1) return [0]; // 「最後が0」を満たす最小ケース
 
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const toLen = (x: number) => Math.max(1, Math.round(x));
 
     const out: number[] = [];
-    let cur = 0; // 0 から開始
+    let cur = 1; // ← 1から開始に変更！
 
     while (out.length < L) {
         const p = out.length / (L - 1); // 0→1 へ進行
@@ -141,25 +141,21 @@ export function generateMask(
             ? toLen(lerp(zStart, zEnd, p))
             : toLen(lerp(oStart, oEnd, p));
 
-        // 残り枠を超えないように詰める
         let n = Math.min(runLen, L - out.length);
 
         // 最後の1枠は必ず0にしたい
-        // → 残りが1で今が1ランなら、その1枠は後で0に回すため n=0 にする
         if (cur === 1 && (L - out.length) === 1) {
             n = 0;
         }
 
         for (let i = 0; i < n; i++) out.push(cur);
 
-        // ラン切り替え
         cur = 1 - cur as 0 | 1;
 
-        // もし詰め切ったら終了
         if (out.length >= L) break;
     }
 
-    // 念のための終端保証：最後は0にする
+    // 終端保証：最後は0
     if (out[out.length - 1] !== 0) {
         out[out.length - 1] = 0;
     }

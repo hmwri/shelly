@@ -25,6 +25,7 @@ export class BackgroundScene extends Scene {
     cameraVec: Vector3;
     worldScene: WorldScene;
     frustumSize: number = 10;
+    direction: direction;
     private isPanning = false;
     private panStartNDC: Vector2 | null = null;
     private panStartWorld: Vector3 | null = null;
@@ -46,8 +47,9 @@ export class BackgroundScene extends Scene {
         this.THREEscene = worldScene.THREEscene;
         this.camera = new OrthographicCamera();
         this.cameraVec = directionToCameraVec[direction].clone();
-        this.camera.position.copy(this.cameraVec.clone().multiplyScalar(10));
+        this.camera.position.copy(this.cameraVec.clone().multiplyScalar(20));
 
+        this.direction = direction;
         // 向きごとのカメラ設定
         if (direction === "xy") {
             this.camera.up.set(0, 1, 0);
@@ -82,13 +84,11 @@ export class BackgroundScene extends Scene {
         window.addEventListener("ui:setLineWidth", (ev: Event) => {
             const value = (ev as CustomEvent<{ value: number }>).detail.value;
             this.sketchCanvas.strokeWeight = value
+            console.log(this.sketchCanvas.strokeWeight)
         })
+        this.camera.position.y += 3
 
         this.updateCamera()
-        if(direction === "xy") {
-            this.addSketch(testCurve);
-        }
-
         this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
     }
@@ -141,6 +141,8 @@ export class BackgroundScene extends Scene {
             if(initial && now)
             this.worldScene.selectingObject?.onMove(initial.sub(now))
         }
+        // 任意の音声ファイルを再生
+
    }
 
 
@@ -165,10 +167,34 @@ export class BackgroundScene extends Scene {
         } else{
             this.addSketch(curve);
         }
+        const sound = new Audio("anime.mp3");
+        sound.play();
 
         // 3Dシーンに追加
 
         this.sketchCanvas.finishStroke(curve.points.map(p => this.NDCToCanvasPos(p)));
+    }
+
+    addTestLine(){
+        const testCurve = new NurbsCurve(
+            [
+                [-0.37266988105283194, 0.07239073023432538],
+                [-0.30510814013626075, 0.1784123012410865],
+                [-0.1875320369433661, 0.29546421945732676],
+                [-0.08551398016300955, 0.7313507701210126],
+                [0.2353314450791319, 0.7008650926044424],
+                [0.3264529372982839, 0.2851606597220622],
+                [0.3858515624712898, 0.1315747433540553],
+                [0.5154323150224216, 0.11756760546524048]
+            ],
+            3,
+            [0, 0, 0, 0, 0.2, 0.4, 0.6, 0.8, 1, 1, 1, 1]
+        );
+
+
+        if(this.direction === "xy") {
+            this.addSketch(testCurve);
+        }
     }
 
     protected onScroll(e: WheelEvent): void {
@@ -178,6 +204,7 @@ export class BackgroundScene extends Scene {
 
     // --- NURBS Surface 生成 ---
     addSketch(curve: NurbsCurve): void {
+        console.log(curve);
         const projectedP = curve.points.map((xy) => {
             const p = this.intersectPlane(xy, this.plane);
             if (p == null) throw new Error("Unknown plane");
@@ -254,7 +281,7 @@ export class BackgroundScene extends Scene {
         const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
         this.camera.left = (-frustumSize * aspect) / 2;
         this.camera.right = (frustumSize * aspect) / 2;
-        this.camera.top = frustumSize / 2;
+        this.camera.top = frustumSize / 2 ;
         this.camera.bottom = -frustumSize / 2;
         this.camera.updateProjectionMatrix();
     }

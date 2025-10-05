@@ -3,7 +3,7 @@ import { Vector2 } from "three";
 
 export class SketchCanvas extends CanvasBase {
     private ctx: CanvasRenderingContext2D;
-    strokeWeight = 1;
+    strokeWeight = 2;
 
     constructor(canvas: HTMLCanvasElement) {
         super(canvas);

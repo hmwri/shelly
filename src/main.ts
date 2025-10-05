@@ -1,6 +1,35 @@
 // src/main.ts
 import { BackgroundScene, WorldScene } from "./scene";
 import { SketchCanvas } from "./canvas";
+import {MiniGridController} from "./grid.ts";
+
+const range = document.getElementById("lineWidthRange") as HTMLInputElement | null;
+function setupLineWidthUI() {
+
+    if (!range) return;
+
+    const emit = (value: number) => {
+        window.dispatchEvent(
+            new CustomEvent("ui:setLineWidth", { detail: { value } })
+        );
+    };
+
+    // 初期値を通知
+    emit(Number(range.value));
+
+    // 入力のたびに通知（ドラッグ中も反映）
+    range.addEventListener("input", () => {
+        emit(Number(range.value));
+    });
+
+    // 変更確定時にもう一度通知（必要なら）
+    range.addEventListener("change", () => {
+        emit(Number(range.value));
+    });
+}
+
+setupLineWidthUI();
+
 
 type Axis = "xy" | "xz" | "yz"; // 必要なら拡張
 
@@ -30,8 +59,10 @@ for (const p of overlayPanels) {
     const gl = getCanvas(p.glId);
     const sk = getCanvas(p.sketchId);
     const sketch = new SketchCanvas(sk);
+    sketch.strokeWeight = Number(range?.value);
     const bg = new BackgroundScene(gl, worldSceneTR, p.axis, sketch);
 
+    console.log(sketch.strokeWeight)
     bgScenes.push(bg);
     sketchLayers.push(sketch);
 }
@@ -70,31 +101,6 @@ const tick = () => {
 tick();
 
 
-function setupLineWidthUI() {
-    const range = document.getElementById("lineWidthRange") as HTMLInputElement | null;
-    if (!range) return;
-
-    const emit = (value: number) => {
-        window.dispatchEvent(
-            new CustomEvent("ui:setLineWidth", { detail: { value } })
-        );
-    };
-
-    // 初期値を通知
-    emit(Number(range.value));
-
-    // 入力のたびに通知（ドラッグ中も反映）
-    range.addEventListener("input", () => {
-        emit(Number(range.value));
-    });
-
-    // 変更確定時にもう一度通知（必要なら）
-    range.addEventListener("change", () => {
-        emit(Number(range.value));
-    });
-}
-
-setupLineWidthUI();
 
 /* ========= HMR Cleanup ========= */
 if (import.meta.hot) {
@@ -108,3 +114,7 @@ if (import.meta.hot) {
         for (const sk of sketchLayers) { try { (sk as any).dispose?.(); } catch {} }
     });
 }
+
+
+
+

@@ -12,6 +12,8 @@ import { NurbsSurfaceModel } from "../model/NurbsSurfaceModel";
 import { NurbsSurfaceView } from "../view/NurbsSurfaceView";
 import { NurbsSurfaceController } from "../controller/NurbsSurfaceController";
 import { ArchObject } from "./base/ArchObject.ts";
+import type {GridParams} from "../grid.ts";
+import {typedEntries} from "../utils/common.ts";
 
 export class NurbsSurfaceObject extends ArchObject {
     declare material: THREE.MeshStandardMaterial;
@@ -69,6 +71,9 @@ export class NurbsSurfaceObject extends ArchObject {
         } else if (this.mode === "EDITING") {
             this.material.wireframe = !this.selected;
             this.material.color.setHex(this.selected ? 0xffff88 : 0xffffff);
+            if(this.selected) {
+                this.setGridControllerForBuildType()
+            }
             this.view.setActiveLine(true);
         }
     }
@@ -79,6 +84,39 @@ export class NurbsSurfaceObject extends ArchObject {
             this.view.selectHelper(null);
             this.view.clearSuggestions();
         }
+    }
+
+    setGridControllerForBuildType(){
+        const type = this.controller.model.buildType
+        switch (type) {
+            case "N":
+                this.worldScene.gridController?.setVisible(false)
+                break;
+            case "U":
+                this.worldScene.gridController?.setVisible(true)
+                this.worldScene.gridController?.setMode("horizontalOnly")
+                break;
+            case "V":
+                this.worldScene.gridController?.setVisible(true)
+                this.worldScene.gridController?.setMode("verticalOnly")
+                break;
+            case "UV":
+                this.worldScene.gridController?.setVisible(true)
+                this.worldScene.gridController?.setMode("both")
+                break;
+        }
+    }
+
+    setGridParams(params:GridParams) {
+
+        this.model.setGridParams(params);
+        this.updateGeometry()
+        this.worldScene.gridController?.setParams(params)
+    }
+
+    onSelect(){
+        console.log(this.worldScene.gridController)
+        this.worldScene.gridController?.setParams(this.model.getGridParams())
     }
 
     sketchModify(scene: BackgroundScene, samples: THREE.Vector2[]) {
@@ -110,6 +148,10 @@ export class NurbsSurfaceObject extends ArchObject {
 
     onMove(delta: Vector3) {
         this.position.copy(this.moveBeginPos.clone().sub(delta));
+    }
+
+    gridConroll() {
+
     }
 }
 

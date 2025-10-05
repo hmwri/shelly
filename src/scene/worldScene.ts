@@ -8,8 +8,17 @@ import {STLExporter} from 'three/examples/jsm/exporters/STLExporter.js';
 import type {ModeType} from "../types/nurbs";
 import {LineHelper} from "../object/helpers/LineHelper.ts";
 import { ArchObject } from "../object/base/ArchObject";
+import {MiniGridController} from "../grid.ts";
 
-export type EventCode = "RedButton" | "GreenButton" | "BlueButton" | "YellowButton" ;
+export type EventCode =
+    | "RedButton"
+    | "GreenButton"
+    | "BlueButton"
+    | "YellowButton"
+    | "ToolFillSolid"
+    | "ToolFillHStripe"
+    | "ToolFillVStripe"
+    | "ToolFillGrid";
 export class WorldScene extends Scene {
 
 
@@ -17,6 +26,7 @@ export class WorldScene extends Scene {
     objects: ArchObject[] = [];
     helpers: LineHelper[] = [];
     mode: ModeType = "NORMAL";
+    gridController?:MiniGridController
 
 
     constructor(canvas: HTMLCanvasElement) {
@@ -60,9 +70,11 @@ export class WorldScene extends Scene {
         );
 
         window.addEventListener("DOMContentLoaded", () => {
+            // ===== 既存の信号ボタン =====
             const greenBtn = document.getElementById("GreenButton");
             const redBtn = document.getElementById("RedButton");
             const yellowBtn = document.getElementById("YellowButton");
+
             greenBtn?.addEventListener("click", () => {
                 console.log("green");
                 this.sendEvent("GreenButton");
@@ -77,6 +89,44 @@ export class WorldScene extends Scene {
                 console.log("yellow");
                 this.sendEvent("YellowButton");
             });
+
+
+            // ===== 新しいツールボタン群（左縦端） =====
+            const fillBtn = document.getElementById("ToolFillSolid");
+            const hStripeBtn = document.getElementById("ToolFillHStripe");
+            const vStripeBtn = document.getElementById("ToolFillVStripe");
+            const gridBtn = document.getElementById("ToolFillGrid");
+
+            fillBtn?.addEventListener("click", () => {
+                console.log("fill solid");
+                this.sendEvent("ToolFillSolid");
+            });
+
+            hStripeBtn?.addEventListener("click", () => {
+                console.log("horizontal stripe");
+                this.sendEvent("ToolFillHStripe");
+            });
+
+            vStripeBtn?.addEventListener("click", () => {
+                console.log("vertical stripe");
+                this.sendEvent("ToolFillVStripe");
+            });
+
+            gridBtn?.addEventListener("click", () => {
+                console.log("grid pattern");
+                this.sendEvent("ToolFillGrid");
+            });
+
+            const svg = document.getElementById("miniGridTR") as SVGSVGElement | null;
+
+            const controller = new MiniGridController(svg!, (params) => {
+                if(this.selectingObject instanceof NurbsSurfaceObject) {
+                    this.selectingObject.setGridParams(params);
+                }
+            });
+            controller.setCornerRatio(0.18);
+            controller.setMode("verticalOnly");
+            this.gridController = controller;
         });
 
 
@@ -144,6 +194,7 @@ export class WorldScene extends Scene {
                 URL.revokeObjectURL(a.href);
             }
         })
+        this.setMode("NORMAL")
 
     }
 
@@ -152,12 +203,16 @@ export class WorldScene extends Scene {
     }
 
     sendEvent(code:EventCode) {
-        for(const obj of this.objects) {
-            obj.onEvent(code)
+        if(this.selectingObject) {
+            this.selectingObject.onEvent(code);
         }
     }
 
     setMode(mode: ModeType) {
+
+        const el = document.getElementById('modeLabel');
+        if (el) el.textContent = mode=="NORMAL" ? "INITIAL" : "MODIFY"
+
         this.mode = mode;
         for(const object of this.objects) {
             object.changeMode(mode);
@@ -175,6 +230,7 @@ export class WorldScene extends Scene {
         if(object) {
             this.selectingObject = object;
             object.selected = true;
+            object.onSelect();
         }
     }
 

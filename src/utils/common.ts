@@ -407,3 +407,40 @@ export function average(vectors: Vector3[]): Vector3 {
 export function typedEntries<T extends object>(obj: T): [keyof T, T[keyof T]][] {
     return Object.entries(obj) as [keyof T, T[keyof T]][];
 }
+
+
+/**
+ * 1次元mask配列2つの論理積をとって2次元maskを生成
+ * @param maskI i方向mask（行側）
+ * @param maskJ j方向mask（列側）
+ * @returns 二次元mask（maskI.length × maskJ.length）
+ */
+export function combineMasks(maskI: number[], maskJ: number[]): number[][] {
+    const out: number[][] = [];
+    for (let i = 0; i < maskI.length; i++) {
+        const row: number[] = [];
+        for (let j = 0; j < maskJ.length; j++) {
+            row.push(maskI[i] && maskJ[j] ? 1 : 0);
+        }
+        out.push(row);
+    }
+    return out;
+}
+
+/**
+ * 1次元mask配列2つの論理積をとって2次元maskを生成
+ * @param maskI i方向mask（行側）
+ * @param maskJ j方向mask（列側）
+ * @returns 二次元mask（maskI.length × maskJ.length）
+ */
+export function combineOrMasks(maskI: number[], maskJ: number[]): number[][] {
+    const out: number[][] = [];
+    for (let i = 0; i < maskI.length; i++) {
+        const row: number[] = [];
+        for (let j = 0; j < maskJ.length; j++) {
+            row.push(maskI[i] || maskJ[j] ? 1 : 0);
+        }
+        out.push(row);
+    }
+    return out;
+}

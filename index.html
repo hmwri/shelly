@@ -20,15 +20,55 @@
             height: 100vh;
         }
 
+        /* 既存 header を少し薄く＆右側に小さな情報欄 */
         header {
-            grid-column: 1 / 3; /* ヘッダーを横に全幅 */
+            grid-column: 1 / 3;
             background: #333;
             color: white;
             display: flex;
             align-items: center;
-            padding: 0.5rem 1rem;
-            font-size: 1.2rem;
+            justify-content: space-between;   /* タイトル左 / 情報右 */
+            padding: 4px 10px;                /* ← 小さく */
+            font-size: 0.95rem;               /* ← 小さく */
+            line-height: 1.1;
+            min-height: 38px;                 /* コンパクト高さ */
         }
+
+        .header-title { display: flex; align-items: center; gap: 8px; }
+        .header-title .shell-icon { display: inline-flex; align-items: center; }
+        .header-title .shell-icon svg { width: 20px; height: 18px; display: block; }
+
+        /* 右側の小さな情報欄 */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font: 600 12px/1 system-ui, sans-serif;
+            opacity: 0.95;
+        }
+
+        /* “Mode: NORMAL” の小さなバッジ */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
+            font-weight: 700;
+            letter-spacing: .02em;
+        }
+
+        /* キー表記っぽい小パーツ */
+        .kbd {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.35);
+            background: rgba(255,255,255,0.08);
+            font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        .header-sep { opacity: .5; margin: 0 2px; }
 
         .panel {
             position: relative;
@@ -147,14 +187,155 @@
         #panel-tr .traffic-lights-vert .light.green  { background: #20c36b; }
         #panel-tr .traffic-lights-vert .light.red    { background: #ff4d4f; }
         #panel-tr .traffic-lights-vert .light.yellow { background: #f7c948; }
+
+        /* 左端の縦並びツール（#panel-tr の左縦端） */
+        #panel-tr .fill-tools-vert {
+            position: absolute;
+            top: 50%;
+            left: 8px;                 /* 左端からの余白 */
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 3;                /* キャンバスより前面 */
+            pointer-events: auto;
+        }
+
+        /* アイコン共通ボタン */
+        #panel-tr .fill-tools-vert .tool-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 8px;
+            background: rgba(20,20,20,0.55);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.25);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        #panel-tr .fill-tools-vert .tool-btn:hover {
+            background: rgba(30,30,30,0.65);
+            border-color: rgba(255,255,255,0.45);
+        }
+
+        /* SVG の見た目 */
+        #panel-tr .fill-tools-vert .icon {
+            width: 18px;
+            height: 18px;
+            color: #fff;
+            opacity: 0.95;
+        }
+
+        /* クリック時の軽いフィードバック */
+        #panel-tr .fill-tools-vert .tool-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* 右上パネル：左下ミニUI（縦線・横線 + 四角） *//* ミニUIの位置を少し右上に寄せる（#panel-tr 左下基準） */
+        #panel-tr .mini-grid-ui {
+            position: absolute;
+            left: 10px;
+            bottom: 10px;
+            z-index: 7;
+            padding: 5px;
+            background: rgba(20,20,20,0.55);
+            backdrop-filter: blur(4px);
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.25);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            pointer-events: auto;
+            user-select: none;
+        }
+
+        /* 視認性の高い矢印色＆前面 */
+        #panel-tr #vArrowTR .arrow-fill { fill: #00e5ff; }
+        #panel-tr #hArrowTR .arrow-fill { fill: #ff8a00; }
+        #panel-tr .knob-arrow { cursor: pointer; }
+        #panel-tr .knob-arrow .arrow-stroke { stroke: rgba(0,0,0,0.35); stroke-width: 1; fill: none; }
+        #panel-tr #vArrowTR { cursor: ew-resize; }
+        #panel-tr #hArrowTR { cursor: ns-resize; }
+
+        /* 囲い線は主線と同じ太さ・前面衝突なし（非操作） */
+        #panel-tr .frame-line { fill: #fff; opacity: .85; pointer-events: none; }
+
+        /* 初期チラつき防止 */
+        #panel-tr .mini-grid-ui [data-mini-grid] { visibility: hidden; }
+
+        #panel-tr .mini-grid-ui svg {
+            width: 150px;
+            height: 110px;
+            display: block;
+        }
+
+        /* 縦線・横線（厚みは rect の幅/高さで表現） */
+        .mini-line { fill:#fff; opacity:.95; }
+
+        /* 太さノブ（両矢印） */
+        .knob-arrow { fill:#fff; opacity:.95; cursor: pointer; }
+
+        /* 四角と右下ノブ */
+        .mini-cell { fill: rgba(255,255,255,0.08); stroke: rgba(255,255,255,0.45); }
+        .corner-knob { fill:#fff; opacity:.95; cursor: pointer; stroke: rgba(0,0,0,0.15); stroke-width:0.8; }
+
+        /* 小さな表示 */
+        #miniGridInfoTR {
+            margin-top: 3px;
+            color:#fff;
+            text-align:right;
+            font: 600 10.5px/1.2 system-ui, sans-serif;
+            opacity:.9;
+        }
+        /* 矢印ノブの見た目とカーソル */
+        #panel-tr .knob-arrow { fill:#fff; opacity:.95; cursor: pointer;
+            stroke: rgba(0,0,0,0.15); stroke-width: 0.8; }
+        #panel-tr #vArrowTR { cursor: ew-resize; } /* 横方向に太さ変更 */
+        #panel-tr #hArrowTR { cursor: ns-resize; } /* 縦方向に太さ変更 */
+
+        /* 矢印ノブ：鮮やか＆縁取りで視認性UP */
+        #panel-tr #vArrowTR .arrow-fill { fill: #00e5ff; }
+        #panel-tr #hArrowTR .arrow-fill { fill: #ff8a00; }
+        #panel-tr .knob-arrow { cursor: pointer; }
+        #panel-tr .knob-arrow .arrow-stroke { stroke: rgba(0,0,0,0.35); stroke-width: 1; fill: none; }
+        #panel-tr #vArrowTR { cursor: ew-resize; }
+        #panel-tr #hArrowTR { cursor: ns-resize; }
+
+        /* 囲い線（非操作） */
+        #panel-tr .frame-line { fill: #fff; opacity: .8; pointer-events: none; }
     </style>
 </head>
 <body>
 <div id="app">
-    <!-- ヘッダー -->
+
     <header>
-        My Visualization Dashboard
+        <div class="header-title" style="display:flex;align-items:center;gap:10px;">
+            Shelly
+            <!-- 甲羅SVGをタイトル横に配置（少し大きく） -->
+            <span class="shell-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+     style="height:32px;width:auto;display:block;">
+  <path d="M12 2 L19 6.5 L19 13.5 L12 22 L5 13.5 L5 6.5 Z"/>
+  <path d="M12 5 L17 8 L17 12 L12 17 L7 12 L7 8 Z"/>
+  <path d="M12 8 L15 9.8 L15 12.2 L12 15 L9 12.2 L9 9.8 Z"/>
+</svg>
+        </span>
+        </div>
+
+        <div class="header-right">
+            <div class="mode">Mode: <span id="modeLabel" class="badge">NORMAL</span></div>
+            <div class="hints">
+                <span class="kbd">ENTER</span> 完了
+                <span class="kbd">D</span> 削除
+                <span class="kbd">E</span> STLエクスポート
+                <span class="header-sep">•</span>
+                <span class="kbd">Z</span> Undo
+            </div>
+        </div>
     </header>
+
 
     <!-- 左上：GL + sketch -->
     <div id="panel-tl" class="panel">
@@ -167,7 +348,7 @@
                 <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
 
-            <input id="lineWidthRange" type="range" min="1" max="20" value="4" step="1" aria-label="Line thickness slider" />
+            <input id="lineWidthRange" type="range" min="5" max="20" value="10" step="1" aria-label="Line thickness slider" />
 
             <!-- 太い線アイコン -->
             <svg class="icon thick" viewBox="0 0 24 24" aria-hidden="true">
@@ -179,6 +360,94 @@
     <!-- 右上：GL のみ -->
     <div id="panel-tr" class="panel">
         <canvas id="glRIghtTopCanvas"></canvas>
+        <!-- 右上：左下ミニUI（縦線・横線 + 四角） -->
+        <div class="mini-grid-ui" aria-label="Grid mini controller">
+            <svg id="miniGridTR" viewBox="0 0 150 110">
+                <!-- 囲い線（非操作・自動追従） -->
+                <rect id="frameVLeftTR"  class="frame-line" x="0" y="0" width="0" height="0"/>
+                <rect id="frameVRightTR" class="frame-line" x="0" y="0" width="0" height="0"/>
+                <rect id="frameHTopTR"   class="frame-line" x="0" y="0" width="0" height="0"/>
+                <rect id="frameHBotTR"   class="frame-line" x="0" y="0" width="0" height="0"/>
+
+                <!-- （矢印の中身を色付きパーツに分解：中心(0,0)基準で左右/上下対称） -->
+                <g id="vArrowTR" class="knob-arrow">
+                    <path class="arrow-fill"   d="M-9,-4 L-17,0 L-9,4 Z" />
+                    <path class="arrow-stroke" d="M-9,-4 L-17,0 L-9,4 Z" />
+                    <rect class="arrow-fill" x="-9" y="-1.6" width="18" height="3.2" rx="1.6"/>
+                    <rect class="arrow-stroke" x="-9" y="-1.6" width="18" height="3.2" rx="1.6"/>
+                    <path class="arrow-fill"   d="M9,-4 L17,0 L9,4 Z" />
+                    <path class="arrow-stroke" d="M9,-4 L17,0 L9,4 Z" />
+                </g>
+
+                <g id="hArrowTR" class="knob-arrow">
+                    <path class="arrow-fill"   d="M-4,-9 L0,-17 L4,-9 Z" />
+                    <path class="arrow-stroke" d="M-4,-9 L0,-17 L4,-9 Z" />
+                    <rect class="arrow-fill" x="-1.6" y="-9" width="3.2" height="18" rx="1.6"/>
+                    <rect class="arrow-stroke" x="-1.6" y="-9" width="3.2" height="18" rx="1.6"/>
+                    <path class="arrow-fill"   d="M-4,9 L0,17 L4,9 Z" />
+                    <path class="arrow-stroke" d="M-4,9 L0,17 L4,9 Z" />
+                </g>
+                <!-- フレームガイド -->
+                <rect x="6" y="6" width="138" height="98" rx="6" ry="6"
+                      fill="none" stroke="rgba(255,255,255,0.35)"/>
+
+                <!-- 交点（左上角）を中心に配置するためのパラメトリック描画 -->
+                <!-- 縦線（厚み = width） -->
+                <rect id="vLineTR" class="mini-line" x="0" y="0" width="6" height="90"/>
+                <!-- 横線（厚み = height） -->
+                <rect id="hLineTR" class="mini-line" x="0" y="0" width="100" height="6"/>
+
+
+                <!-- 四角（交点を左上角とする） -->
+                <rect id="cellTR" class="mini-cell" x="0" y="0" width="60" height="40"/>
+                <!-- 右下ノブ（四角サイズ調整） -->
+                <circle id="cornerKnobTR" class="corner-knob" cx="0" cy="0" r="3.8"/>
+            </svg>
+
+            <div id="miniGridInfoTR">V:6 H:6 W:60 H:40</div>
+        </div>
+
+        <!-- 左端 縦並びのフィル・パターンツール -->
+        <div class="fill-tools-vert" role="toolbar" aria-label="Fill & Pattern">
+            <!-- 塗りつぶし -->
+            <button id="ToolFillSolid" class="tool-btn" title="塗りつぶし" aria-label="塗りつぶし">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="4" y="4" width="16" height="16" fill="currentColor" rx="2" ry="2"/>
+                </svg>
+            </button>
+
+            <!-- 横しま -->
+            <button id="ToolFillHStripe" class="tool-btn" title="よこしま" aria-label="よこしま">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="4" y="6"  width="16" height="2" fill="currentColor"/>
+                    <rect x="4" y="10" width="16" height="2" fill="currentColor"/>
+                    <rect x="4" y="14" width="16" height="2" fill="currentColor"/>
+                    <rect x="4" y="18" width="16" height="2" fill="currentColor"/>
+                </svg>
+            </button>
+
+            <!-- たてしま -->
+            <button id="ToolFillVStripe" class="tool-btn" title="たてしま" aria-label="たてしま">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="6"  y="4" width="2" height="16" fill="currentColor"/>
+                    <rect x="10" y="4" width="2" height="16" fill="currentColor"/>
+                    <rect x="14" y="4" width="2" height="16" fill="currentColor"/>
+                    <rect x="18" y="4" width="2" height="16" fill="currentColor"/>
+                </svg>
+            </button>
+
+            <!-- 格子状 -->
+            <button id="ToolFillGrid" class="tool-btn" title="格子状" aria-label="格子状">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <!-- 外枠（うすく） -->
+                    <rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" rx="2" ry="2"/>
+                    <!-- 縦線 -->
+                    <path d="M8 5v14M12 5v14M16 5v14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <!-- 横線 -->
+                    <path d="M5 8h14M5 12h14M5 16h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
 
         <!-- 右端 縦並びの信号風ドット -->
         <div class="traffic-lights-vert" aria-hidden="true">
@@ -189,6 +458,8 @@
     </div>
     <!-- 左下：GL + sketch -->
     <div id="panel-bl" class="panel">
+        <!-- 右下：直感操作ミニ格子（コンパクト） -->
+
         <canvas id="glCanvasBL"></canvas>
         <canvas id="sketchCanvasBL" class="sketchCanvas"></canvas>
     </div>

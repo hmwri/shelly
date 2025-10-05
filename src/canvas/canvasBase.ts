@@ -34,7 +34,7 @@ export class CanvasBase {
 
         if (event.buttons === 2) {
             this.onRightPointerDown(event)
-        } else {
+        } else if(event.button === 0 && event.buttons != 2) {
             this.onPointerDown(event)
         }
     }
@@ -56,7 +56,9 @@ export class CanvasBase {
         }
         this.downPos = null
 
-        if (event.buttons === 2) {
+        console.log(event)
+
+        if (event.buttons === 2 || event.button == 2) {
             this.onRightPointerUp(event)
         } else {
             this.onPointerUp(event)

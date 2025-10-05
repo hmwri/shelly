@@ -38,6 +38,10 @@ export class ArchObject extends THREE.Mesh {
         return this.lineHelpers.some((h) => h.selecting);
     }
 
+    onSelect(){
+
+    }
+
     update() {}
 
     changeMode(mode: ModeType) {
