@@ -5,24 +5,33 @@ import type { NurbsSurface } from "../curve";
 import {BufferGeometry, Vector2, Vector3} from "three";
 import * as THREE from "three";
 import {GeometryBuilder, Vertex} from "../utils/common.ts";
+import {clamp01, ease01, type Easing, generateMask} from "../history/command.ts";
 
-type CornerVertexes = {
-    "u0v0" : Vector3,
-    "u0vN" : Vector3,
-    "uNvN" : Vector3,
-    "uNv0" : Vector3,
+export type CornerKey =
+    "u0v0"|
+    "u0vN"|
+    "uNvN"|
+    "uNv0"
 
-}
+
+type CornerVertexes = Record<CornerKey, Vector3>
+
+type CornerThicknesses = Record<CornerKey, number>
 
 export class NurbsSurfaceModel {
     surface: NurbsSurface;
     cornerVertexes: CornerVertexes | null = null;
     cornerTopVertexes: CornerVertexes| null = null;
-    thickness:number;
+    cornerThicknesses: CornerThicknesses;
 
-    constructor(surface: NurbsSurface, thickness:number=0.2) {
+    constructor(surface: NurbsSurface, thickness: number = 0.2) {
         this.surface = surface;
-        this.thickness = thickness;
+        this.cornerThicknesses = {
+            u0v0: thickness,
+            u0vN: thickness,
+            uNvN: thickness,
+            uNv0: thickness,
+        }
     }
 
     clone(): NurbsSurfaceModel {
@@ -36,13 +45,17 @@ export class NurbsSurfaceModel {
         this.surface.setControlPointVector(axis, index, points);
     }
 
+
+    setCornerThickness(key:CornerKey, thickness:number): void {
+        this.cornerThicknesses[key] = Math.max(thickness, 0.1)
+    }
+
     /**
      * ジオメトリ生成（現状の surface を反映）
      */
     buildGeometry(): BufferGeometry {
-        return this.buildNurbsSolidGeometry(100, 100, {thickness:this.thickness});
+        return this.buildNurbsSolidGeometry(100, 100);
     }
-
 
 
 
@@ -108,7 +121,10 @@ export class NurbsSurfaceModel {
                 const ny = normals![3 * idx + 1];
                 const nz = normals![3 * idx + 2];
 
-                const p = grid[i][j].clone().add(new Vector3(nx, ny, nz).multiplyScalar(-thickness));
+                const t_ij = this.thicknessAtIndex(i, j, Nu, Nv, this.cornerThicknesses, "smoothstep");
+
+
+                const p = grid[i][j].clone().add(new Vector3(nx, ny, nz).multiplyScalar(-t_ij/2));
                 const v = new Vertex(p, new Vector2(uAt(i), vAt(j)));
                 if(i == 0 && j == 0)  cornerVertexes.u0v0 = p
                 if(i == 0 && j == Nv-1)  cornerVertexes.u0vN = p
@@ -136,7 +152,9 @@ export class NurbsSurfaceModel {
                 const ny = normals![3 * idx + 1];
                 const nz = normals![3 * idx + 2];
 
-                const p = grid[i][j].clone().add(new Vector3(nx, ny, nz).multiplyScalar(thickness));
+                const t_ij = this.thicknessAtIndex(i, j, Nu, Nv, this.cornerThicknesses, "smoothstep");
+
+                const p = grid[i][j].clone().add(new Vector3(nx, ny, nz).multiplyScalar(t_ij/2));
                 const v = new Vertex(p, new Vector2(uAt(i), vAt(j)));
                 if(i == 0 && j == 0)  cornerVertexesTop.u0v0 = p
                 if(i == 0 && j == Nv-1)  cornerVertexesTop.u0vN = p
@@ -164,15 +182,17 @@ export class NurbsSurfaceModel {
         }
 
 // オフセット面（裏面）は既に作っている前提
+        const mask = generateMask(Nu, 2, 2, 4,4)
         for (let i = 0; i < Nu - 1; i++) {
             for (let j = 0; j < Nv - 1; j++) {
+                mask[i] == 0 ?
                 gb.addRect(
                     offsetVertexGrid[i][j],
                     offsetVertexGrid[i + 1][j],
                     offsetVertexGrid[i][j + 1],
                     offsetVertexGrid[i + 1][j + 1],
                     flipNormal
-                );
+                ) : null;
             }
         }
 
@@ -218,4 +238,44 @@ export class NurbsSurfaceModel {
 
         return  gb.toBufferGeometry();
     }
+
+    private bilerpThickness(
+        u: number,
+        v: number,
+        c: CornerThicknesses
+    ): number {
+        const t00 = c.u0v0; // (u=0,v=0)
+        const t01 = c.u0vN; // (u=0,v=1)
+        const t11 = c.uNvN; // (u=1,v=1)
+        const t10 = c.uNv0; // (u=1,v=0)
+
+        // (1-u)(1-v) t00 + (1-u)v t01 + u v t11 + u(1-v) t10
+        return (1 - u) * (1 - v) * t00
+            + (1 - u) * v       * t01
+            + u       * v       * t11
+            + u       * (1 - v) * t10;
+    }
+
+// 実際の厚み（法線倍率）を各 i,j で計算
+    private thicknessAtIndex(
+        i: number,
+        j: number,
+        Nu: number,
+        Nv: number,
+        corners: CornerThicknesses,
+        easing: Easing = "linear"
+    ): number {
+        const du = Math.max(1, Nu - 1);
+        const dv = Math.max(1, Nv - 1);
+        // i は u 方向、j は v 方向（あなたのインデックス規約に合わせる）
+        let u = clamp01(i / du);
+        let v = clamp01(j / dv);
+
+        u = ease01(u, easing, "u");
+        v = ease01(v, easing, "v");
+
+        return this.bilerpThickness(u, v, corners);
+    }
+
+
 }

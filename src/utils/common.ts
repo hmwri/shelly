@@ -402,3 +402,8 @@ export function average(vectors: Vector3[]): Vector3 {
     }
     return result.multiplyScalar(1 / vectors.length);
 }
+
+
+export function typedEntries<T extends object>(obj: T): [keyof T, T[keyof T]][] {
+    return Object.entries(obj) as [keyof T, T[keyof T]][];
+}

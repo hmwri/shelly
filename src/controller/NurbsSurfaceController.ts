@@ -7,13 +7,14 @@ import type { BackgroundScene } from "../scene";
 import { weightedAverage, cosineSimilarity } from "../utils/common.ts";
 import { fitBSprain } from "../utils/fitBSprain.ts";
 import { SuggestionHelper } from "../object/helpers/suggestionHelper.ts";
-import { SetControlPointsCommand } from "../history/command.ts";
+import {linearWeights, SetControlPointsCommand, SetThicknessCommand, weightedCenterIndex} from "../history/command.ts";
 import type { NurbsSurface } from "../curve";
 import type { EventCode } from "../scene/worldScene.ts";
-import type { LineHelper, UVLineHelper } from "../object/helpers/LineHelper.ts";
+import {LineHelper, ThickLineHelper, UVLineHelper} from "../object/helpers/LineHelper.ts";
 import { NurbsSurfaceModel } from "../model/NurbsSurfaceModel";
 import { NurbsSurfaceView } from "../view/NurbsSurfaceView";
 import type { NurbsSurfaceObject } from "../object/NurbsSurfaceObject";
+import {apply} from "mathjs";
 
 const oppAxis: { u: "v"; v: "u" } = { u: "v", v: "u" } as const;
 
@@ -44,14 +45,46 @@ export class NurbsSurfaceController {
      * 旧 sketchModify のロジック
      */
     applySketch(scene: BackgroundScene, samples: Vector2[]) {
-        const line = this.selectedLine as UVLineHelper | null;
+        const line = this.selectedLine
         if (!line) return;
-
         this.view.clearSuggestions();
+        if(line instanceof UVLineHelper) {
+            this.applyUVSketch(scene, samples, line)
+        }
+        if(line instanceof ThickLineHelper) {
+            this.applyThichnessSketch(scene, samples, line)
+        }
 
-        const dirVec = scene.cameraVec.clone();
+
+    }
+
+    applyThichnessSketch(scene: BackgroundScene, samples: Vector2[], line: ThickLineHelper) {
+        const projectedP: THREE.Vector3[] = samples.map((xy) => {
+            const p = scene.intersectPlane(xy, scene.plane);
+            if (p == null) throw new Error("Unknown plane");
+            p.sub(this.owner.position); // ローカル化
+            return p;
+        });
+
+        const l = projectedP[0].sub(projectedP[projectedP.length - 1]).length()
+        this.owner.history.execute(
+            new SetThicknessCommand(
+                {
+                    target:this.owner,
+                    corner:line.loc,
+                    oldThickness:this.model.cornerThicknesses[line.loc],
+                    thickness:l
+                }
+
+
+            )
+        )
+    }
+
+    applyUVSketch(scene: BackgroundScene, samples: Vector2[], line:UVLineHelper) {
         const axis = line.axis;
         const oAxis = oppAxis[axis];
+        const dirVec = scene.cameraVec.clone();
 
         const degree = this.model.surface.degree[axis === "u" ? 0 : 1];
         const nP = this.model.surface.getNP(axis);
@@ -95,6 +128,8 @@ export class NurbsSurfaceController {
             return diffs.map((d, i) => dirVec2.clone().multiply(d).add(originalP[i]));
         };
 
+
+
         // ========== Suggestion 1: 基底に閾値をかけて一部のみ更新 ==========
         {
             const newSurface: NurbsSurface = basicSurface.clone();
@@ -128,9 +163,11 @@ export class NurbsSurfaceController {
         // ========== Suggestion 2: 全断面を一律更新 ==========
         {
             const newSurface: NurbsSurface = basicSurface.clone();
+            const center = weightedCenterIndex(basis)
+            const w = linearWeights(basis.length, center);
             for (let j = 0; j < nP2; j++) {
                 const originalP = basicSurface.getControlPointVector(axis, j) as Vector3[];
-                const newP = calcNewP(originalP, dirVec);
+                const newP = calcNewP(originalP, dirVec, w[j]);
                 newSurface.setControlPointVector(axis, j, newP);
             }
             const helper = new SuggestionHelper(
@@ -139,7 +176,7 @@ export class NurbsSurfaceController {
             );
             this.view.addSuggestion(helper);
             helper.eventCallback = (event) => {
-                if (event === "GreenButton") {
+                if (event === "YellowButton") {
                     this.owner.history.execute(
                         new SetControlPointsCommand({
                             target: this.owner,
@@ -171,11 +208,11 @@ export class NurbsSurfaceController {
 
             const helper = new SuggestionHelper(
                 new NurbsSurfaceModel(newSurface).buildGeometry(),
-                new THREE.MeshStandardMaterial({ color: 0xffff00, transparent: true, opacity: 0.2 })
+                new THREE.MeshStandardMaterial({ color: 0x0000ff, transparent: true, opacity: 0.2 })
             );
             this.view.addSuggestion(helper);
             helper.eventCallback = (event) => {
-                if (event === "YellowButton") {
+                if (event === "GreenButton") {
                     this.owner.history.execute(
                         new SetControlPointsCommand({
                             target: this.owner,

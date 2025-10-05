@@ -79,6 +79,11 @@ export class BackgroundScene extends Scene {
             [0, 0, 0, 0, 0.2, 0.4, 0.6, 0.8, 1, 1, 1, 1]
         );
 
+        window.addEventListener("ui:setLineWidth", (ev: Event) => {
+            const value = (ev as CustomEvent<{ value: number }>).detail.value;
+            this.sketchCanvas.strokeWeight = value
+        })
+
         this.updateCamera()
         if(direction === "xy") {
             this.addSketch(testCurve);
@@ -138,6 +143,8 @@ export class BackgroundScene extends Scene {
         }
    }
 
+
+
     protected onPointerUp(e: PointerEvent): void {
         this.isDrawing = false;
         this.isHandDragging = false;
@@ -148,7 +155,7 @@ export class BackgroundScene extends Scene {
 
         // --- Bスプライン近似 ---
 
-        const curve = fitBSprain(resampled, 3, 8);
+        const curve = fitBSprain(resampled, 3, 7);
 
         if(this.worldScene.mode == "EDITING") {
             this.worldScene.selectingObject?.sketchModify(
@@ -177,7 +184,7 @@ export class BackgroundScene extends Scene {
             return p;
         });
 
-        const PN = 5;
+        const PN = 7;
         let points: Vector3[][] = [];
         for (let i = 0; i < PN; i++) {
             points.push(
@@ -195,8 +202,9 @@ export class BackgroundScene extends Scene {
         );
 
         const obj = this.worldScene.addObject(
-            new NurbsSurfaceObject(surface, this.worldScene)
+            new NurbsSurfaceObject(surface, this.worldScene, this.sketchCanvas.strokeWeight * (this.camera.right - this.camera.left) / this.canvas.clientWidth)
         );
+
         this.worldScene.selectObject(obj);
         this.worldScene.setMode("EDITING");
     }
@@ -241,6 +249,7 @@ export class BackgroundScene extends Scene {
 
     // --- カメラ操作 ---
     updateCamera() {
+
         const frustumSize = this.frustumSize;
         const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
         this.camera.left = (-frustumSize * aspect) / 2;
@@ -249,6 +258,8 @@ export class BackgroundScene extends Scene {
         this.camera.bottom = -frustumSize / 2;
         this.camera.updateProjectionMatrix();
     }
+
+
 
     onResize() {
         super.onResize();

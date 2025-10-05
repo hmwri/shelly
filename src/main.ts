@@ -69,6 +69,33 @@ const tick = () => {
 };
 tick();
 
+
+function setupLineWidthUI() {
+    const range = document.getElementById("lineWidthRange") as HTMLInputElement | null;
+    if (!range) return;
+
+    const emit = (value: number) => {
+        window.dispatchEvent(
+            new CustomEvent("ui:setLineWidth", { detail: { value } })
+        );
+    };
+
+    // 初期値を通知
+    emit(Number(range.value));
+
+    // 入力のたびに通知（ドラッグ中も反映）
+    range.addEventListener("input", () => {
+        emit(Number(range.value));
+    });
+
+    // 変更確定時にもう一度通知（必要なら）
+    range.addEventListener("change", () => {
+        emit(Number(range.value));
+    });
+}
+
+setupLineWidthUI();
+
 /* ========= HMR Cleanup ========= */
 if (import.meta.hot) {
     import.meta.hot.dispose(() => {

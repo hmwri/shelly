@@ -69,6 +69,80 @@
             opacity: 0.95;
         }
 
+        /* ===== 線の太さスライダー（左上パネル内 左上固定） ===== */
+        #panel-tl .thickness-slider {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 3;                 /* キャンバスより前面 */
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: rgba(20, 20, 20, 0.55);
+            backdrop-filter: blur(4px);
+            border-radius: 999px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            pointer-events: auto;       /* スライダー操作できるように */
+        }
+
+        /* アイコン（細い/太い線） */
+        #panel-tl .thickness-slider .icon {
+            width: 18px;
+            height: 18px;
+            color: #fff;
+            opacity: 0.9;
+        }
+
+        /* range スライダーのスタイル（WebKit系） */
+        #panel-tl .thickness-slider input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 160px;
+            height: 4px;
+            background: linear-gradient(90deg, #888, #fff);
+            border-radius: 999px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* トラック */
+        #panel-tl .thickness-slider input[type="range"]::-webkit-slider-runnable-track {
+            height: 4px;
+            background: transparent;
+            border-radius: 999px;
+        }
+
+        /* サム（つまみ） */
+        #panel-tl .thickness-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+            margin-top: -6px; /* サムをトラック中央に */
+        }
+
+        /* Firefox */
+        #panel-tl .thickness-slider input[type="range"]::-moz-range-track {
+            height: 4px;
+            background: transparent;
+            border-radius: 999px;
+        }
+        #panel-tl .thickness-slider input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+        }
+
+        /* 文字は使わないが、視認性を少し上げるホバー効果 */
+        #panel-tl .thickness-slider:hover .icon { opacity: 1; }
+
         /* 指定の順序：緑 → 赤 → 黄 */
         #panel-tr .traffic-lights-vert .light.green  { background: #20c36b; }
         #panel-tr .traffic-lights-vert .light.red    { background: #ff4d4f; }
@@ -86,6 +160,20 @@
     <div id="panel-tl" class="panel">
         <canvas id="glCanvasTL"></canvas>
         <canvas id="sketchCanvasTL" class="sketchCanvas"></canvas>
+        <!-- 文字なし・アイコンのみの太さスライダー -->
+        <div class="thickness-slider" aria-label="Line thickness">
+            <!-- 細い線アイコン -->
+            <svg class="icon thin" viewBox="0 0 24 24" aria-hidden="true">
+                <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+
+            <input id="lineWidthRange" type="range" min="1" max="20" value="4" step="1" aria-label="Line thickness slider" />
+
+            <!-- 太い線アイコン -->
+            <svg class="icon thick" viewBox="0 0 24 24" aria-hidden="true">
+                <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+            </svg>
+        </div>
     </div>
 
     <!-- 右上：GL のみ -->

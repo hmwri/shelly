@@ -4,7 +4,8 @@ import { Line2 } from "three/examples/jsm/lines/Line2.js";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import type { Vector3 } from "three";
-import type { ArchObject } from "../NurbsSurfaceObject.ts"; // ←型だけ使うなら type import でもOK
+import type { ArchObject } from "../NurbsSurfaceObject.ts";
+import type {CornerKey} from "../../model/NurbsSurfaceModel.ts"; // ←型だけ使うなら type import でもOK
 
 /** 共通のふるまいを持つ基底クラス */
 export abstract class LineHelper extends Line2 {
@@ -98,10 +99,12 @@ export class UVLineHelper extends LineHelper {
     }
 }
 
-/** 単に太さ・見た目が異なる補助線（意味論的メタ情報は不要） */
+
 export class ThickLineHelper extends LineHelper {
-    constructor(points: Vector3[], color: number, lineWidth: number, arch: ArchObject) {
+    loc:CornerKey;
+    constructor(points: Vector3[], color: number, lineWidth: number, loc:CornerKey, arch: ArchObject) {
         super(points, color, lineWidth, arch);
+        this.loc = loc;
     }
 
     override clone(recursive = true): this {

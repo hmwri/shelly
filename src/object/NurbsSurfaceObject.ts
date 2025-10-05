@@ -25,8 +25,8 @@ export class NurbsSurfaceObject extends ArchObject {
 
     get lineHelpers() { return this.view.lineHelpers; }
 
-    constructor(surface: NurbsSurface, worldScene: WorldScene) {
-        const model = new NurbsSurfaceModel(surface);
+    constructor(surface: NurbsSurface, worldScene: WorldScene, thichness= 0.2) {
+        const model = new NurbsSurfaceModel(surface, thichness);
         const geometry = model.buildGeometry();
         const material = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
         super(geometry, material);
@@ -90,12 +90,14 @@ export class NurbsSurfaceObject extends ArchObject {
         this.controller.onEvent(code);
     }
 
-    updateGeometry(surface: NurbsSurface) {
+    updateGeometry(surface: NurbsSurface |null =null) {
         // ジオメトリの差し替え
         this.geometry.dispose();
+        if(surface) {
+            this.model.surface = surface;
+        }
 
-        this.model.surface = surface;
-        this.geometry = this.model.buildNurbsSolidGeometry();
+        this.geometry = this.model.buildGeometry();
 
         // 補助線リフレッシュ
         this.view.regenerateLineHelpers(this.model, this);

@@ -3,7 +3,7 @@
 // =============================================
 import * as THREE from "three";
 import type { NurbsSurface } from "../curve";
-import { linspace } from "../utils/common.ts";
+import {linspace, typedEntries} from "../utils/common.ts";
 import { LineHelper, ThickLineHelper, UVLineHelper } from "../object/helpers/LineHelper.ts";
 import { SuggestionHelper } from "../object/helpers/suggestionHelper.ts";
 import type {NurbsSurfaceModel} from "../model/NurbsSurfaceModel.ts";
@@ -48,13 +48,17 @@ export class NurbsSurfaceView {
             this.lineGroup.add(line);
         }
 
-        for (const [key, vt] of Object.entries(model.cornerTopVertexes)) {
-            const v = model.cornerVertexes[key]
-            const line = new ThickLineHelper([v, vt], 0x220000, 7, owner);
-            this.lineHelpers.push(line);
-            this.lineGroup.add(line);
+        if(model.cornerVertexes && model.cornerTopVertexes) {
+            for (const [key, vt] of typedEntries(model.cornerTopVertexes)) {
+                const v = model.cornerVertexes[key]
+                const line = new ThickLineHelper([v, vt], 0x220000, 7, key,  owner);
+                this.lineHelpers.push(line);
+                this.lineGroup.add(line);
 
+            }
         }
+
+
 
 
 

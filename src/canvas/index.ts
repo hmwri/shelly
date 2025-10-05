@@ -3,6 +3,7 @@ import { Vector2 } from "three";
 
 export class SketchCanvas extends CanvasBase {
     private ctx: CanvasRenderingContext2D;
+    strokeWeight = 1;
 
     constructor(canvas: HTMLCanvasElement) {
         super(canvas);
@@ -18,10 +19,11 @@ export class SketchCanvas extends CanvasBase {
     }
 
     finishStroke(points: Vector2[]) {
-        this.redraw(points, "green");
+        this.redraw(points, "green", true);
     }
 
-    private redraw(points: Vector2[], color: string) {
+    private redraw(points: Vector2[], color: string, thin:boolean = false) {
+        this.ctx.lineWidth = thin ? 2: this.strokeWeight
         this.ctx.clearRect(0, 0, this.w, this.h);
         if (points.length === 0) return;
 
