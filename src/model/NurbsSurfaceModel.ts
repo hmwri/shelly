@@ -6,7 +6,6 @@ import {BufferGeometry, Vector2, Vector3} from "three";
 import * as THREE from "three";
 import {combineMasks, combineOrMasks, GeometryBuilder, typedEntries, Vertex} from "../utils/common.ts";
 import {clamp01, ease01, type Easing, generateMask} from "../history/command.ts";
-import type {EventCode} from "../scene/worldScene.ts";
 import type {GridParams} from "../grid.ts";
 
 export type CornerKey =
@@ -157,7 +156,7 @@ export class NurbsSurfaceModel {
             typedEntries(params).map(([k, v]) => [k, v * 0.8])
         );
 
-        this.gridParams = scaled
+        this.gridParams = scaled as GridParams
     }
     getGridParams() {
         const scaled = Object.fromEntries(
@@ -337,7 +336,7 @@ export class NurbsSurfaceModel {
             thickness?: number;
         }
     ): BufferGeometry {
-        const {flipNormal = false, epsArea = 1e-12, thickness = 0.2} = opts ?? {};
+        const {flipNormal = false} = opts ?? {};
 
         // 1) サンプル点（Nu x Nv）
         const grid = this.surface.sampleN(Nu, Nv)

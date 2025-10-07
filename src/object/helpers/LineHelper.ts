@@ -4,8 +4,8 @@ import { Line2 } from "three/examples/jsm/lines/Line2.js";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import type { Vector3 } from "three";
-import type { ArchObject } from "../NurbsSurfaceObject.ts";
-import type {CornerKey} from "../../model/NurbsSurfaceModel.ts"; // ←型だけ使うなら type import でもOK
+import type {CornerKey} from "../../model/NurbsSurfaceModel.ts";
+import type {ArchObject} from "../base/ArchObject.ts"; // ←型だけ使うなら type import でもOK
 
 /** 共通のふるまいを持つ基底クラス */
 export abstract class LineHelper extends Line2 {

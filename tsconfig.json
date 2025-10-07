@@ -5,6 +5,10 @@
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "nurbs": ["src/types/nurbs"]   // 拡張子なし指定でOK（.d.ts を指す）
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -19,7 +23,8 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   },
-  "include": ["src"]
+  "include": ["src", "src/types"]
 }

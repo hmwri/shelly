@@ -1,6 +1,5 @@
 import {Scene} from "./type.ts";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
-import {TransformControls} from "three/examples/jsm/controls/TransformControls.js";
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {NurbsSurfaceObject} from "../object/NurbsSurfaceObject.ts";
 import * as THREE from "three";
@@ -31,8 +30,7 @@ export class WorldScene extends Scene {
 
     constructor(canvas: HTMLCanvasElement) {
         super(canvas);
-        const orbit = new OrbitControls(this.camera, this.renderer.domElement);
-        const transformControls = new TransformControls(this.camera, this.renderer.domElement);
+         new OrbitControls(this.camera, this.renderer.domElement);
         // const cube = createCube();
         //
         // this.add(cube)
@@ -198,7 +196,7 @@ export class WorldScene extends Scene {
 
     }
 
-    onPointerDown(event: PointerEvent) {
+    onPointerDown(_: PointerEvent) {
 
     }
 

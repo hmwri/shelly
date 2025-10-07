@@ -30,7 +30,6 @@ export class OLS {
 
         // Xa: [1, X] もしくは X
         const Xa = this.fitIntercept ? X.map(r => [1, ...r]) : X;
-        const n = Xa.length;
         const pEff = Xa[0].length; // p+1 or p
 
         // Ridge ありなら拡張行列で安定に

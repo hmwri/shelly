@@ -13,7 +13,6 @@ import { NurbsSurfaceView } from "../view/NurbsSurfaceView";
 import { NurbsSurfaceController } from "../controller/NurbsSurfaceController";
 import { ArchObject } from "./base/ArchObject.ts";
 import type {GridParams} from "../grid.ts";
-import {typedEntries} from "../utils/common.ts";
 
 export class NurbsSurfaceObject extends ArchObject {
     declare material: THREE.MeshStandardMaterial;

@@ -284,7 +284,7 @@ export class GeometryBuilder {
     }
 
     /** three.js ジオメトリ化（必要に応じて bake してから） */
-    toBufferGeometry(autoBake: boolean = true): THREE.BufferGeometry {
+    toBufferGeometry(): THREE.BufferGeometry {
         this.bake();
 
 

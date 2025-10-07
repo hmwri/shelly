@@ -14,7 +14,7 @@ import {LineHelper, ThickLineHelper, UVLineHelper} from "../object/helpers/LineH
 import { NurbsSurfaceModel } from "../model/NurbsSurfaceModel";
 import { NurbsSurfaceView } from "../view/NurbsSurfaceView";
 import type { NurbsSurfaceObject } from "../object/NurbsSurfaceObject";
-import {apply} from "mathjs";
+
 
 const oppAxis: { u: "v"; v: "u" } = { u: "v", v: "u" } as const;
 
@@ -114,7 +114,7 @@ export class NurbsSurfaceController {
 
         const curve = fitBSprain(samples, degree, nP);
         const projectedP: THREE.Vector3[] = curve.points.map((xy) => {
-            const p = scene.intersectPlane(xy, scene.plane);
+            const p = scene.intersectPlane(xy as Vector2, scene.plane);
             if (p == null) throw new Error("Unknown plane");
             p.sub(this.owner.position.clone()); // ローカル化
             return p;

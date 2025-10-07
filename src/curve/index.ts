@@ -1,14 +1,14 @@
-import {BufferAttribute, BufferGeometry, Vector2, Vector3} from "three";
+import { Vector2, Vector3} from "three";
 import  {type NurbsObject} from "nurbs";
 import nurbs from "nurbs";
 import {
-    concatTypedArray, deepCopyVector3Matrix, GeometryBuilder,
+     deepCopyVector3Matrix, GeometryBuilder,
     isNumber2D, isNumber3D,
-    isVector2Array, isVector3Matrix,
+     isVector3Matrix,
     linspace,
     numberListToVec2List,
     numberListToVec3List,
-    vecListTonumberList, Vertex
+    vecListTonumberList,
 } from "../utils/common.ts";
 import {fullBasisAt} from "../utils/nurbs.ts";
 

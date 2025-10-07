@@ -1,6 +1,5 @@
 import type {Vector2} from "three";
 import {linspace, vecListTonumberList} from "./common.ts";
-import nurbs from "nurbs";
 
 import {
     fullBasisAt,
@@ -17,7 +16,6 @@ export function fitBSprain(
     n_controlPoint:number = 6,
     type:"ClampedUniform" = "ClampedUniform",
 ) {
-    const n = n_controlPoint - 1;
 
     let knots :number[] = [];
     if(type == "ClampedUniform"){

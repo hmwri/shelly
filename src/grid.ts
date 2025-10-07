@@ -87,7 +87,7 @@ export class MiniGridController {
 
     // ===== 公開API =====
     getParams(): GridParams { return { ...this.p }; }
-    setParams(next: Partial<GridParams>, notify = true) {
+    setParams(next: Partial<GridParams>) {
         this.p = { ...this.p, ...next };
         this.render();
         // if (notify) this.emit();

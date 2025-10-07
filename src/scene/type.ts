@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import {PerspectiveCamera, Vector3} from "three";
 import {CanvasBase} from "../canvas/canvasBase.ts";
-import type {ArchObject} from "../object/base/ArchObject.ts";
+
 
 export class Scene extends CanvasBase {
     THREEscene : THREE.Scene

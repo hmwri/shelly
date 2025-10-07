@@ -1,7 +1,7 @@
 // src/main.ts
 import { BackgroundScene, WorldScene } from "./scene";
 import { SketchCanvas } from "./canvas";
-import {MiniGridController} from "./grid.ts";
+
 
 const range = document.getElementById("lineWidthRange") as HTMLInputElement | null;
 function setupLineWidthUI() {

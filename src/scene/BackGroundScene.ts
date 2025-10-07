@@ -1,6 +1,6 @@
 import { Scene } from "./type";
 import type { WorldScene } from "./worldScene";
-import { Camera, OrthographicCamera, Vector2, Vector3 } from "three";
+import {  OrthographicCamera, Vector2, Vector3 } from "three";
 import * as THREE from "three";
 
 import { NurbsCurve, NurbsSurface } from "../curve";
@@ -66,20 +66,6 @@ export class BackgroundScene extends Scene {
         this.camera.lookAt(new Vector3(0, 0, 0));
         this.camera.layers.disable(1);
         this.onResize();
-        const testCurve = new NurbsCurve(
-            [
-                [-0.37266988105283194, 0.07239073023432538],
-                [-0.30510814013626075, 0.1784123012410865],
-                [-0.1875320369433661, 0.29546421945732676],
-                [-0.08551398016300955, 0.7313507701210126],
-                [0.2353314450791319, 0.7008650926044424],
-                [0.3264529372982839, 0.2851606597220622],
-                [0.3858515624712898, 0.1315747433540553],
-                [0.5154323150224216, 0.11756760546524048]
-            ],
-            3,
-            [0, 0, 0, 0, 0.2, 0.4, 0.6, 0.8, 1, 1, 1, 1]
-        );
 
         window.addEventListener("ui:setLineWidth", (ev: Event) => {
             const value = (ev as CustomEvent<{ value: number }>).detail.value;
@@ -147,7 +133,7 @@ export class BackgroundScene extends Scene {
 
 
 
-    protected onPointerUp(e: PointerEvent): void {
+    protected onPointerUp(_: PointerEvent): void {
         this.isDrawing = false;
         this.isHandDragging = false;
         if (this.currentPoints.length < 10) return;
@@ -172,7 +158,7 @@ export class BackgroundScene extends Scene {
 
         // 3Dシーンに追加
 
-        this.sketchCanvas.finishStroke(curve.points.map(p => this.NDCToCanvasPos(p)));
+        this.sketchCanvas.finishStroke(curve.points.map(p => this.NDCToCanvasPos(p as Vector2)));
     }
 
     addTestLine(){
@@ -206,7 +192,7 @@ export class BackgroundScene extends Scene {
     addSketch(curve: NurbsCurve): void {
         console.log(curve);
         const projectedP = curve.points.map((xy) => {
-            const p = this.intersectPlane(xy, this.plane);
+            const p = this.intersectPlane(xy as Vector2, this.plane);
             if (p == null) throw new Error("Unknown plane");
             return p;
         });

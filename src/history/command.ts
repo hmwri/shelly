@@ -1,11 +1,11 @@
 // commands.ts
 
-import type { Vector3 } from "three";
+
 import type {NurbsSurfaceObject} from "../object/NurbsSurfaceObject.ts";
 import type {NurbsSurface} from "../curve";
 import type {CornerKey} from "../model/NurbsSurfaceModel.ts";
 
-type Axis = "u" | "v";
+
 
 export class SetControlPointsCommand {
     private target: NurbsSurfaceObject;

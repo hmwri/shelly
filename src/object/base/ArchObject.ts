@@ -22,10 +22,8 @@ export class ArchObject extends THREE.Mesh {
     protected _lineHelpers: LineHelper[] = [];
 
     get lineHelpers(): LineHelper[] { return this._lineHelpers; }
-    set lineHelpers(v: LineHelper[]) { this._lineHelpers = v; }
 
-    get lineHelpers(): LineHelper[] { return this._lineHelpers; }
-    set lineHelpers(v: LineHelper[]) { this._lineHelpers = v; }
+
 
     constructor(geometry: THREE.BufferGeometry, material: THREE.Material) {
         super(geometry, material);

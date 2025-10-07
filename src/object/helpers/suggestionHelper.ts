@@ -1,5 +1,5 @@
 
-import {type BufferGeometry, Vector3} from "three";
+import {type BufferGeometry, } from "three";
 import * as THREE from "three";
 import type {EventCode} from "../../scene/worldScene.ts";
 

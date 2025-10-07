@@ -2,7 +2,6 @@
 // File: view/NurbsSurfaceView.ts
 // =============================================
 import * as THREE from "three";
-import type { NurbsSurface } from "../curve";
 import {linspace, typedEntries} from "../utils/common.ts";
 import { LineHelper, ThickLineHelper, UVLineHelper } from "../object/helpers/LineHelper.ts";
 import { SuggestionHelper } from "../object/helpers/suggestionHelper.ts";
